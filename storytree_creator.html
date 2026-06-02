@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Branchly · 剧情共创宇宙</title>
+<title>Branchly · Story Co-creation Universe</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 /* ── Variables ─────────────────────────────────────────────── */
 :root {
@@ -29,8 +29,8 @@
   --muted:     #94a3b8;
   --faint:     #475569;
 
-  --serif: 'Noto Serif SC', 'Songti SC', Georgia, serif;
-  --sans:  Inter, 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  --serif: 'Noto Serif', Georgia, serif;
+  --sans:  Inter, Arial, sans-serif;
   --r: 8px;
   --r-lg: 14px;
   --nav-h: 56px;
@@ -569,7 +569,7 @@ option { background: #07101e; }
     </div>
     <div class="nav-center">
       <div class="nav-back" id="nav-back" onclick="navBack()" style="display:none">
-        ← <span id="nav-back-label">首页</span>
+        ← <span id="nav-back-label">Home</span>
       </div>
     </div>
     <div class="nav-right">
@@ -594,23 +594,23 @@ option { background: #07101e; }
       <div class="hero-content">
         <div class="hero-badge">
           <span class="dot"></span>
-          首发热播 · PixVerse 生成
+          Featured Premiere · PixVerse Generated
         </div>
-        <div class="hero-title">寒潮纪元·重生</div>
-        <div class="hero-desc">她当众撕毁那张支票的那一刻，整个故事才刚刚开始——这棵树的每一根枝桠，都是另一个结局的可能。</div>
+        <div class="hero-title">Coldwave Era · Rebirth</div>
+        <div class="hero-desc">The moment she tore up that check in public, the real story began. Every branch on this tree is another possible ending.</div>
         <div class="hero-actions">
-          <button class="btn primary" onclick="navigate('tree')">进入剧情树 →</button>
-          <button class="btn" onclick="navigate('tree')">查看全部分支</button>
+          <button class="btn primary" onclick="navigate('tree')">Enter Story Tree →</button>
+          <button class="btn" onclick="navigate('tree')">View All Branches</button>
         </div>
       </div>
       <div class="hero-meta">
         <div class="hero-stat">
           <div class="val" id="hero-branches">7</div>
-          <div class="lab">活跃分支</div>
+          <div class="lab">Active Branches</div>
         </div>
         <div class="hero-stat">
           <div class="val" id="hero-likes">922</div>
-          <div class="lab">总点赞</div>
+          <div class="lab">Total Likes</div>
         </div>
       </div>
     </div>
@@ -618,8 +618,8 @@ option { background: #07101e; }
     <!-- Drama Grid -->
     <div class="home-section">
       <div class="section-header">
-        <div class="section-title">正在生长的宇宙</div>
-        <div class="section-more">查看全部</div>
+        <div class="section-title">Growing Universes</div>
+        <div class="section-more">View All</div>
       </div>
       <div class="drama-grid" id="drama-grid"></div>
     </div>
@@ -627,8 +627,8 @@ option { background: #07101e; }
     <!-- Hot Branches -->
     <div class="home-section" style="padding-top:0">
       <div class="section-header">
-        <div class="section-title">🔥 热门分支</div>
-        <div class="section-more">更多</div>
+        <div class="section-title">🔥 Hot Branches</div>
+        <div class="section-more">More</div>
       </div>
       <div class="branches-row" id="branches-row"></div>
     </div>
@@ -654,10 +654,10 @@ option { background: #07101e; }
         <button onclick="treeReset()" style="font-size:12px">⟲</button>
       </div>
       <div id="tree-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:var(--hot);box-shadow:0 0 6px var(--hot-g)"></div>热门</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--alive);box-shadow:0 0 6px var(--alive-g)"></div>活跃</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--danger);box-shadow:0 0 6px var(--danger-g)"></div>濒危</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--drop)"></div>已 Drop</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--hot);box-shadow:0 0 6px var(--hot-g)"></div>Hot</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--alive);box-shadow:0 0 6px var(--alive-g)"></div>Active</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--danger);box-shadow:0 0 6px var(--danger-g)"></div>Endangered</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--drop)"></div>Dropped</div>
       </div>
     </div>
     <div id="node-panel">
@@ -675,8 +675,8 @@ option { background: #07101e; }
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-header-left">
-          <div class="modal-eyebrow">PixVerse Fusion API · 视觉血缘继承</div>
-          <h2>续写一个分支</h2>
+          <div class="modal-eyebrow">PixVerse Fusion API · Visual Lineage Inheritance</div>
+          <h2>Continue a Branch</h2>
         </div>
         <div class="modal-header-right">
           <div class="token-badge">
@@ -690,16 +690,16 @@ option { background: #07101e; }
         <div class="modal-left" id="modal-left"></div>
         <div class="modal-right">
           <div class="phase-steps" id="phase-steps">
-            <div class="phase-step active" data-phase="draft">① 写剧情</div>
-            <div class="phase-step" data-phase="generating">② 生成中</div>
-            <div class="phase-step" data-phase="preview">③ 预览</div>
+            <div class="phase-step active" data-phase="draft">① Write Story</div>
+            <div class="phase-step" data-phase="generating">② Generating</div>
+            <div class="phase-step" data-phase="preview">③ Preview</div>
           </div>
           <div class="preview-player" id="preview-player">
-            <div class="preview-empty"><div class="icon">🎬</div><p>生成后在这里预览</p></div>
+            <div class="preview-empty"><div class="icon">🎬</div><p>Preview appears here after generation</p></div>
           </div>
           <div class="modal-actions" id="modal-actions"></div>
           <div id="modal-error"></div>
-          <button class="tech-toggle" id="tech-toggle" onclick="togglePayload()">查看 API 请求</button>
+          <button class="tech-toggle" id="tech-toggle" onclick="togglePayload()">View API Request</button>
           <div class="tech-payload" id="tech-payload"></div>
         </div>
       </div>
@@ -731,40 +731,40 @@ const CONFIG = {
    ────────────────────────────────────────────────────────── */
 const ASSETS = {
   asset_lx: {
-    assetId:'asset_lx', type:'character', name:'林夏', refName:'linxia',
+    assetId:'asset_lx', type:'character', name:'Lin Xia', refName:'linxia',
     pixverseImgId: 875295974,
     refImageUrl: '%40linxia.png',
     promptPrefix:'A 28-year-old East Asian woman, shoulder-length straight black hair, oval face, cold pale skin, sharp calm eyes, tailored dark grey business suit',
     negativePrompt:'no changing outfit, no different face, no extra person',
   },
   asset_cy: {
-    assetId:'asset_cy', type:'character', name:'陈翊', refName:'chenyi',
+    assetId:'asset_cy', type:'character', name:'Chen Yi', refName:'chenyi',
     pixverseImgId: 875295975,
     refImageUrl: '%40chenyi.png',
     promptPrefix:'A 32-year-old East Asian man, neat short hair, sharp navy suit, arrogant and restrained',
     negativePrompt:'no different face, no extra person, no casual clothes',
   },
   asset_meteor: {
-    assetId:'asset_meteor', type:'character', name:'神秘男人', refName:'mysteryman',
+    assetId:'asset_meteor', type:'character', name:'Mystery Man', refName:'mysteryman',
     pixverseImgId: 875295976,
     refImageUrl: '%40shenminanren.png',
     promptPrefix:'A 45-year-old East Asian man, tired eyes, dark coat, restrained and suspicious',
     negativePrompt:'no young face, no extra person',
   },
   asset_scene_meeting: {
-    assetId:'asset_scene_meeting', type:'scene', name:'玻璃会议室', refName:'meetingroom',
-    pixverseImgId: 20001, refImageUrl: '玻璃会议室.png',
+    assetId:'asset_scene_meeting', type:'scene', name:'Glass Conference Room', refName:'meetingroom',
+    pixverseImgId: 20001, refImageUrl: 'Glass Conference Room.png',
   },
   asset_scene_blizzard: {
-    assetId:'asset_scene_blizzard', type:'scene', name:'暴雪街头', refName:'blizzard',
-    pixverseImgId: 20002, refImageUrl: '暴雪街头.png',
+    assetId:'asset_scene_blizzard', type:'scene', name:'Blizzard Street', refName:'blizzard',
+    pixverseImgId: 20002, refImageUrl: 'Blizzard Street.png',
   },
   asset_scene_lab: {
-    assetId:'asset_scene_lab', type:'scene', name:'昏暗实验室', refName:'lab',
+    assetId:'asset_scene_lab', type:'scene', name:'Dim Laboratory', refName:'lab',
     pixverseImgId: 20003, refImageUrl: '',
   },
   asset_style_main: {
-    assetId:'asset_style_main', type:'style', name:'寒潮主风格', refName:'coldwave',
+    assetId:'asset_style_main', type:'style', name:'Coldwave Main Style', refName:'coldwave',
     promptPrefix:'vertical 9:16, cinematic short-drama, high contrast, cold winter light, shallow depth of field, film grain, tense revenge drama mood',
   },
 };
@@ -774,10 +774,10 @@ const ASSETS = {
    ────────────────────────────────────────────────────────── */
 const INITIAL_NODES = {
   node_root: {
-    nodeId:'node_root', parentId:null, title:'母片·重生', storyId:'story_001',
-    synopsis:'她当众撕毁了那张支票，全场哗然——这是整个故事的起点。',
-    prompt:'【角色圣经】林夏冷静强势，陈翊豪门继承人。\n宴会厅，林夏当众撕毁支票，众人愕然，慢推近景。',
-    authorId:'platform', authorName:'平台', duration:35,
+    nodeId:'node_root', parentId:null, title:'Master Cut · Rebirth', storyId:'story_001',
+    synopsis:'She tore up the check in public and the room erupted. This is where the whole story begins.',
+    prompt:'[Character bible] Lin Xia is calm and forceful; Chen Yi is a wealthy family heir.\nIn the banquet hall, Lin Xia tears up the check in public. Everyone freezes as the camera slowly pushes in.',
+    authorId:'platform', authorName:'Platform', duration:35,
     ageDays:60, isFreeWindow:true, unlockPrice:0,
     likes:520, impressions:12000, paidUnlocks:0,
     isProtected:false, status:'alive',
@@ -785,10 +785,10 @@ const INITIAL_NODES = {
     ownAssetIds:['asset_lx','asset_cy','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
   },
   node_a: {
-    nodeId:'node_a', parentId:'node_root', title:'寒潮来临', storyId:'story_001',
-    synopsis:'凛冬将至，她选择站在风暴最中心——一个让所有人都措手不及的决定。',
-    prompt:'林夏转身冷笑，灯光拉出冷金边缘，众人后退。',
-    authorId:'user_a', authorName:'匿名创作者#12', duration:22,
+    nodeId:'node_a', parentId:'node_root', title:'The Coldwave Arrives', storyId:'story_001',
+    synopsis:'Winter is coming, and she chooses to stand at the center of the storm: a decision no one saw coming.',
+    prompt:'Lin Xia turns with a cold smile. The lights carve a cold golden edge as the crowd steps back.',
+    authorId:'user_a', authorName:'Anonymous Creator #12', duration:22,
     ageDays:12, isFreeWindow:true, unlockPrice:1.9,
     likes:134, impressions:980, paidUnlocks:21,
     isProtected:true, status:'alive',
@@ -796,10 +796,10 @@ const INITIAL_NODES = {
     ownAssetIds:[], thumbUrl:'',
   },
   node_b: {
-    nodeId:'node_b', parentId:'node_root', title:'热浪来袭', storyId:'story_001',
-    synopsis:'截然相反的选择——她把所有的愤怒化成烈焰，让整个豪门灼烧。',
-    prompt:'女主宣布离婚，镜头轻微手持，情绪拉满。',
-    authorId:'user_b', authorName:'匿名创作者#42', duration:20,
+    nodeId:'node_b', parentId:'node_root', title:'Heatwave Strikes', storyId:'story_001',
+    synopsis:'The opposite choice: she turns all her rage into flame and lets the entire family burn.',
+    prompt:'The heroine announces the divorce. The camera is subtly handheld, pushing the emotion to its peak.',
+    authorId:'user_b', authorName:'Anonymous Creator #42', duration:20,
     ageDays:9, isFreeWindow:true, unlockPrice:1.9,
     likes:87, impressions:1200, paidUnlocks:7,
     isProtected:true, status:'alive',
@@ -807,10 +807,10 @@ const INITIAL_NODES = {
     ownAssetIds:[], thumbUrl:'',
   },
   node_c: {
-    nodeId:'node_c', parentId:'node_root', title:'消失于深渊', storyId:'story_001',
-    synopsis:'她选择沉默消失，然而这条路走向了无人知晓的深渊。',
-    prompt:'女主背影离场，门口停住，听到窃窃私语，慢慢回头。',
-    authorId:'user_c', authorName:'匿名创作者#07', duration:18,
+    nodeId:'node_c', parentId:'node_root', title:'Vanishing into the Abyss', storyId:'story_001',
+    synopsis:'She chooses to disappear in silence, but this path leads into an abyss no one understands.',
+    prompt:'The heroine walks away, stops at the doorway, hears whispers, and slowly looks back.',
+    authorId:'user_c', authorName:'Anonymous Creator #07', duration:18,
     ageDays:50, isFreeWindow:false, unlockPrice:1.9,
     likes:3, impressions:900, paidUnlocks:0,
     isProtected:false, status:'dropped',
@@ -818,10 +818,10 @@ const INITIAL_NODES = {
     ownAssetIds:[],
   },
   node_locked: {
-    nodeId:'node_locked', parentId:'node_a', title:'待解锁', storyId:'story_001',
-    synopsis:'这条分支尚未开放——成为第一个解锁它的人。',
+    nodeId:'node_locked', parentId:'node_a', title:'Locked', storyId:'story_001',
+    synopsis:'This branch is not open yet. Be the first to unlock it.',
     prompt:'',
-    authorId:'platform', authorName:'平台', duration:0,
+    authorId:'platform', authorName:'Platform', duration:0,
     ageDays:0, isFreeWindow:false, unlockPrice:3.9,
     likes:0, impressions:0, paidUnlocks:0,
     isProtected:false, status:'alive',
@@ -833,38 +833,38 @@ const INITIAL_NODES = {
 /* 4 short dramas for home grid */
 const DRAMAS = [
   {
-    id:'story_001', title:'寒潮纪元·重生',
-    tagline:'当众撕毁那张支票，她的逆袭才刚刚开始',
+    id:'story_001', title:'Coldwave Era · Rebirth',
+    tagline:'After tearing up that check in public, her comeback has only begun',
     poster:'重生海报.png', status:'alive', featured:true,
     nodeIds:['node_a','node_b','node_c','node_locked'],
   },
   {
-    id:'story_002', title:'暗夜女王',
-    tagline:'深紫夜色，奢靡豪门——她用半生蛰伏换来一夜覆手',
-    poster:'暗夜女王.png', status:'coming', featured:false,
+    id:'story_002', title:'Queen of the Dark Night',
+    tagline:'Deep violet night, lavish old money. After half a life in hiding, she overturns everything in one night',
+    poster:'Queen of the Dark Night.png', status:'coming', featured:false,
     gradientFrom:'#1a0428', gradientTo:'#0a0318',
     nodeIds:[],
   },
   {
-    id:'story_003', title:'深渊棋局',
-    tagline:'所有的爱恨情仇，不过是一场精密设计的博弈',
-    poster:'深渊棋局.png', status:'coming', featured:false,
+    id:'story_003', title:'Abyssal Chessboard',
+    tagline:'All the love, hatred, and revenge are moves in a meticulously designed game',
+    poster:'Abyssal Chessboard.png', status:'coming', featured:false,
     gradientFrom:'#040c18', gradientTo:'#0a1428',
     nodeIds:[],
   },
   {
-    id:'story_004', title:'玫瑰与荆棘',
-    tagline:'她以爱为刀，划开了整个家族的谎言',
-    poster:'玫瑰与荆棘.png', status:'coming', featured:false,
+    id:'story_004', title:'Roses and Thorns',
+    tagline:'She turns love into a blade and cuts open the family lie',
+    poster:'Roses and Thorns.png', status:'coming', featured:false,
     gradientFrom:'#1a0408', gradientTo:'#280a0a',
     nodeIds:[],
   },
 ];
 
 const PRESET_RESULTS = [
-  { resultId:'preset_A', title:'新芽·暴雪回眸', synopsis:'林夏在暴雪中回头，发现陈翊身后还有另一个操盘者。', seed:120845911 },
-  { resultId:'preset_B', title:'新芽·会议室反击', synopsis:'她把支票推回桌面，会议室灯光骤暗，陈翊终于失去掌控。', seed:573290184 },
-  { resultId:'preset_C', title:'新芽·录音证据', synopsis:'一段旧录音曝光寒潮真相，林夏决定把陈家拖进审判现场。', seed:948220731 },
+  { resultId:'preset_A', title:'New Sprout · Look Back in the Blizzard', synopsis:'Lin Xia looks back in the blizzard and discovers another operator behind Chen Yi.', seed:120845911 },
+  { resultId:'preset_B', title:'New Sprout · Conference Room Counterattack', synopsis:'She pushes the check back across the table, the conference room lights snap dark, and Chen Yi finally loses control.', seed:573290184 },
+  { resultId:'preset_C', title:'New Sprout · Recorded Evidence', synopsis:'An old recording exposes the truth behind the coldwave, and Lin Xia decides to drag the Chen family into judgment.', seed:948220731 },
 ];
 
 /* ──────────────────────────────────────────────────────────
@@ -966,7 +966,7 @@ function navigate(page, nodeId) {
     back.style.display = 'none';
   } else {
     back.style.display = 'flex';
-    backLabel.textContent = page === 'tree' ? '首页' : '剧情树';
+    backLabel.textContent = page === 'tree' ? 'Home' : 'Story Tree';
   }
   if (page === 'home') renderHome();
   else if (page === 'tree') renderTree();
@@ -1002,7 +1002,7 @@ function renderHome() {
     const branchesHtml = branchNodes.length ? `
       <div class="card-branches">
         <div class="card-branches-label">
-          <span>🔥 热门分支</span>
+          <span>🔥 Hot Branches</span>
           <span style="color:var(--alive);font-weight:600">${branchNodes.length}</span>
         </div>
         <div class="card-branches-row">
@@ -1036,24 +1036,24 @@ function renderHome() {
               <div class="card-branch-info">
                 <div class="card-branch-title">${n.title}</div>
                 <div class="card-branch-likes" style="color:${isDropped?'var(--drop)':isLocked?'var(--hot)':'var(--faint)'}">
-                  ${isDropped ? '已 Drop' : isLocked ? '待解锁' : '♥ '+n.likes}
+                  ${isDropped ? 'Dropped' : isLocked ? 'Locked' : '♥ '+n.likes}
                 </div>
               </div>
             </div>`;
           }).join('')}
           ${isNav ? `<div class="card-branch-chip" onclick="event.stopPropagation();navigate('tree')"
             style="display:flex;align-items:center;justify-content:center;border-style:dashed;opacity:0.5;min-height:80px">
-            <div style="text-align:center;font-size:10px;color:var(--faint);line-height:1.5">+ 续写<br>新分支</div>
+            <div style="text-align:center;font-size:10px;color:var(--faint);line-height:1.5">+ Continue<br>New Branch</div>
           </div>` : ''}
         </div>
       </div>` : (d.status === 'coming' ? `
       <div class="card-branches" style="text-align:center;padding:16px">
-        <span style="font-size:11px;color:var(--faint)">即将开放，敬请期待</span>
+        <span style="font-size:11px;color:var(--faint)">Coming soon</span>
       </div>` : '');
 
     const badge = d.featured
-      ? `<div class="poster-badge live">🌿 进行中</div>`
-      : `<div class="poster-badge new">✦ 即将</div>`;
+      ? `<div class="poster-badge live">🌿 Live</div>`
+      : `<div class="poster-badge new">✦ Soon</div>`;
 
     const totalBranches = d.nodeIds?.length || 0;
 
@@ -1067,8 +1067,8 @@ function renderHome() {
         <div class="drama-name">《${d.title}》</div>
         <div class="drama-tagline">${d.tagline}</div>
         <div class="drama-footer">
-          ${isNav ? `<div class="branch-count"><span class="n">${Object.values(S.nodes).filter(n=>n.status!=='dropped').length}</span> 分支活跃</div>` : '<div class="branch-count">——</div>'}
-          <div class="status-chip ${d.status==='coming'?'coming':'alive'}">${isNav?'可进入':'即将开放'}</div>
+          ${isNav ? `<div class="branch-count"><span class="n">${Object.values(S.nodes).filter(n=>n.status!=='dropped').length}</span> active branches</div>` : '<div class="branch-count">--</div>'}
+          <div class="status-chip ${d.status==='coming'?'coming':'alive'}">${isNav?'Enter':'Coming Soon'}</div>
         </div>
       </div>
       ${branchesHtml}
@@ -1176,7 +1176,7 @@ function drawTree() {
         : `border:1.5px solid ${col.fill}70;box-shadow:0 0 14px ${col.fill}28`;
 
       const likesColor = isDropped ? 'var(--drop)' : isLocked ? 'var(--hot)' : col.fill;
-      const likesText  = isDropped ? '✕ Drop' : isLocked ? '待解锁' : '♥ ' + n.likes;
+      const likesText  = isDropped ? '✕ Drop' : isLocked ? 'Locked' : '♥ ' + n.likes;
 
       return `<g class="node-g" data-id="${n.nodeId}" onclick="openPanel('${n.nodeId}')" transform="translate(${nx},${ny})">
         <foreignObject x="${-dim.hw}" y="${-dim.h/2}" width="${dim.w}" height="${dim.h}">
@@ -1266,7 +1266,7 @@ function openPanel(nodeId) {
   const chars=assets.filter(a=>a.type==='character');
   const scenes=assets.filter(a=>a.type==='scene');
 
-  const statusMap={alive:'活跃',endangered:'濒危',dropped:'已Drop'};
+  const statusMap={alive:'Active',endangered:'Endangered',dropped:'Dropped'};
   const statusColMap={alive:'var(--alive)',endangered:'var(--danger)',dropped:'var(--drop)'};
 
   document.getElementById('panel-header').innerHTML = `
@@ -1276,7 +1276,7 @@ function openPanel(nodeId) {
       ${statusMap[node.status]} · Day ${node.ageDays}
     </div>
     <div class="panel-title">${node.title}</div>
-    <div class="panel-meta">${node.authorName} · ${node.isFreeWindow?'免费中':'付费 ¥'+node.unlockPrice}</div>`;
+    <div class="panel-meta">${node.authorName} · ${node.isFreeWindow?'Free now':'Paid ¥'+node.unlockPrice}</div>`;
 
   let videoHtml='';
   if (nodeId === 'node_locked') {
@@ -1285,9 +1285,9 @@ function openPanel(nodeId) {
         style="width:100%;height:100%;object-fit:cover;filter:blur(8px) brightness(0.4)"></video>
       <div class="lock-overlay">
         <div style="font-size:32px">🔒</div>
-        <div class="lock-text" style="font-size:14px;font-weight:500;color:var(--text)">这条分支尚未开放</div>
-        <div class="lock-text">成为第一个解锁它的人</div>
-        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">解锁 ¥${node.unlockPrice}</button>
+        <div class="lock-text" style="font-size:14px;font-weight:500;color:var(--text)">This branch is not open yet</div>
+        <div class="lock-text">Be the first to unlock it</div>
+        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock ¥${node.unlockPrice}</button>
       </div>`;
   } else if (isUnlocked) {
     videoHtml = node.videoUrl
@@ -1295,15 +1295,15 @@ function openPanel(nodeId) {
       : `<video src="base.mov#t=3" muted playsinline preload="metadata"
            style="width:100%;height:100%;object-fit:cover;filter:brightness(0.6)"></video>
          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
-           <div style="font-size:11px;color:var(--faint);text-align:center">视频占位</div>
+           <div style="font-size:11px;color:var(--faint);text-align:center">Video placeholder</div>
          </div>`;
   } else {
     videoHtml = `<video src="base.mov#t=6" muted playsinline preload="metadata"
         style="width:100%;height:100%;object-fit:cover;filter:blur(4px) brightness(0.3)"></video>
       <div class="lock-overlay">
         <div style="font-size:24px">🔒</div>
-        <div class="lock-text">30 天免费期已过</div>
-        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">解锁 ¥${node.unlockPrice}</button>
+        <div class="lock-text">The 30-day free window has ended</div>
+        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock ¥${node.unlockPrice}</button>
       </div>`;
   }
 
@@ -1313,23 +1313,23 @@ function openPanel(nodeId) {
   document.getElementById('panel-body').innerHTML = `
     <div class="video-box">${videoHtml}</div>
     <div class="synopsis-box">
-      <div class="section-label">梗概（永远免费）</div>
+      <div class="section-label">Synopsis (always free)</div>
       <div class="synopsis-text">${node.synopsis}</div>
     </div>
     <div class="stats-row">
-      <div class="stat-box"><div class="stat-val" style="color:${col.fill}">${node.likes}</div><div class="stat-lab">点赞</div></div>
-      <div class="stat-box"><div class="stat-val">${node.impressions}</div><div class="stat-lab">曝光</div></div>
-      <div class="stat-box"><div class="stat-val">${formatRate(node)}</div><div class="stat-lab">Like率</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:${col.fill}">${node.likes}</div><div class="stat-lab">Likes</div></div>
+      <div class="stat-box"><div class="stat-val">${node.impressions}</div><div class="stat-lab">Views</div></div>
+      <div class="stat-box"><div class="stat-val">${formatRate(node)}</div><div class="stat-lab">Like Rate</div></div>
     </div>
     ${(charChips||sceneChips)?`<div>
-      <div class="section-label">继承资产（视觉血缘）</div>
+      <div class="section-label">Inherited Assets (Visual Lineage)</div>
       <div class="asset-row">${charChips}${sceneChips}</div>
     </div>`: ''}
     <div class="panel-actions">
       <button class="like-btn ${isLiked?'liked':''}" onclick="likeNode('${nodeId}')">
         ${isLiked?'♥':'♡'} ${node.likes}
       </button>
-      ${node.status!=='dropped'?`<button class="btn sm primary" onclick="openCreateModal('${nodeId}')">✎ 在此续写</button>`:''}
+      ${node.status!=='dropped'?`<button class="btn sm primary" onclick="openCreateModal('${nodeId}')">✎ Continue Here</button>`:''}
     </div>`;
 
   document.getElementById('node-panel').classList.add('open');
@@ -1346,13 +1346,13 @@ function likeNode(nodeId) {
   const was=S.likedNodes.has(nodeId);
   if (was){S.likedNodes.delete(nodeId);node.likes--;}else{S.likedNodes.add(nodeId);node.likes++;}
   openPanel(nodeId); drawTree();
-  toast(was?'已取消点赞':'♥ 点赞成功，节点热度已更新');
+  toast(was?'Like removed':'♥ Liked. Node popularity updated');
 }
 
 function unlockNode(nodeId) {
   const node=S.nodes[nodeId];
   S.unlockedNodes.add(nodeId);
-  toast(`¥${node.unlockPrice} 已支付（mock）：创作者 ¥1.5，平台 ¥0.4`);
+  toast(`¥${node.unlockPrice}  paid (mock): creator ¥1.5, platform ¥0.4`);
   openPanel(nodeId);
 }
 
@@ -1363,7 +1363,7 @@ function openCreateModal(parentId) {
   const parent=S.nodes[parentId]; if(!parent) return;
   S.modalParentId=parentId; S.modalPhase='draft'; S.modalResult=null;
   S.modalError=''; S.modalPayloadVisible=false; S.modalResultIndex=0;
-  S.modalPrompt=parent.prompt.replace(/^【角色圣经】.*?\n/u,'').trim();
+  S.modalPrompt=parent.prompt.replace(/^\[Character bible\].*?\n/u,'').trim();
   const assets=getAvailableAssets(parentId);
   const chars=assets.filter(a=>a.type==='character');
   const scenes=assets.filter(a=>a.type==='scene');
@@ -1411,35 +1411,35 @@ function renderModal() {
 
   document.getElementById('modal-left').innerHTML = `
     <div class="parent-ctx">
-      <div class="ctx-label">接续自</div>
+      <div class="ctx-label">Continuing From</div>
       <p>${parent.synopsis}</p>
     </div>
     <div>
-      <label class="form-label">下一幕发生什么？</label>
+      <label class="form-label">What happens next?</label>
       <textarea class="prompt-area" id="modal-prompt" rows="4"
-        placeholder="例如：林夏在会议室关掉投影，只留下一段陈翊无法否认的录音。">${S.modalPrompt}</textarea>
+        placeholder="Example: Lin Xia turns off the projector in the conference room, leaving only a recording Chen Yi cannot deny.">${S.modalPrompt}</textarea>
       <div class="role-lock" style="margin-top:8px">
         <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-top:1px;flex-shrink:0">
           <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
           <path d="M4 5V3.5a2 2 0 014 0V5" stroke="currentColor" stroke-width="1.2"/>
         </svg>
-        角色身份前缀已锁定，系统自动组装 Fusion 参考图——保证视觉血缘一致
+        Character identity prefixes are locked. The system automatically assembles Fusion references to preserve visual lineage.
       </div>
     </div>
     <div>
-      <label class="form-label">出场角色 · 继承参考图</label>
-      <div class="char-grid">${chars.map(charBtn).join('')}${!chars.length?'<div style="font-size:12px;color:var(--faint)">无继承角色</div>':''}</div>
+      <label class="form-label">Characters · Inherited References</label>
+      <div class="char-grid">${chars.map(charBtn).join('')}${!chars.length?'<div style="font-size:12px;color:var(--faint)">No inherited characters</div>':''}</div>
     </div>
     <div>
-      <label class="form-label">画面环境</label>
-      <div class="scene-grid">${scenes.map(sceneBtn).join('')}${!scenes.length?'<div style="font-size:12px;color:var(--faint)">无继承场景</div>':''}</div>
+      <label class="form-label">Scene Environment</label>
+      <div class="scene-grid">${scenes.map(sceneBtn).join('')}${!scenes.length?'<div style="font-size:12px;color:var(--faint)">No inherited scenes</div>':''}</div>
     </div>
     <div>
-      <label class="form-label">时长 / 运镜 / 模型</label>
+      <label class="form-label">Duration / Camera / Model</label>
       <div class="options-row">
-        <select class="option-select" id="modal-duration"><option value="5">5 秒</option><option value="8">8 秒</option></select>
+        <select class="option-select" id="modal-duration"><option value="5">5 sec</option><option value="8">8 sec</option></select>
         <select class="option-select" id="modal-motion"><option value="push_in">Push In</option><option value="pull_back">Pull Back</option><option value="pan_left">Pan Left</option><option value="static">Static</option></select>
-        <select class="option-select" id="modal-model"><option value="v6">V6 通用</option><option value="C1">C1 动作</option><option value="v4.5">V4.5</option></select>
+        <select class="option-select" id="modal-model"><option value="v6">V6 General</option><option value="C1">C1 Action</option><option value="v4.5">V4.5</option></select>
       </div>
     </div>`;
 
@@ -1450,7 +1450,7 @@ function renderModal() {
   document.getElementById('modal-error').innerHTML=S.modalError?`<div class="error-msg">${S.modalError}</div>`:'';
   document.getElementById('tech-payload').classList.toggle('open',S.modalPayloadVisible);
   if (S.modalPayloadVisible) updatePayloadDisplay();
-  document.getElementById('tech-toggle').textContent=S.modalPayloadVisible?'收起 API 请求':'查看 API 请求';
+  document.getElementById('tech-toggle').textContent=S.modalPayloadVisible?'Hide API Request':'View API Request';
 }
 
 function renderPreview() {
@@ -1458,8 +1458,8 @@ function renderPreview() {
   if (S.modalPhase==='generating') {
     pp.innerHTML=`<div class="preview-empty">
       <div class="loading-ring"></div>
-      <p style="margin-top:12px;color:var(--muted)">AI 正在构思分支…</p>
-      <p style="font-size:11px;color:var(--faint);margin-top:4px">${CONFIG.DEMO_MODE?'(演示模式，秒回)':'真实生成约 90s'}</p>
+      <p style="margin-top:12px;color:var(--muted)">AI is drafting the branch...</p>
+      <p style="font-size:11px;color:var(--faint);margin-top:4px">${CONFIG.DEMO_MODE?'(Demo mode, returns quickly)':'Live generation takes about 90s'}</p>
     </div>`;
   } else if (S.modalPhase==='preview'&&S.modalResult) {
     const r=S.modalResult;
@@ -1472,7 +1472,7 @@ function renderPreview() {
           <p style="font-size:10px;color:var(--faint);margin-top:8px">seed: ${r.seed||'—'}</p>
         </div>`;
   } else {
-    pp.innerHTML=`<div class="preview-empty"><div class="icon">🎬</div><p>生成后在这里预览</p></div>`;
+    pp.innerHTML=`<div class="preview-empty"><div class="icon">🎬</div><p>Preview appears here after generation</p></div>`;
   }
 }
 
@@ -1481,11 +1481,11 @@ function renderModalActions() {
   const hasResult=S.modalPhase==='preview'&&S.modalResult;
   const tokenOK=S.tokenBalance>=5;
   document.getElementById('modal-actions').innerHTML=`
-    <button class="btn" ${working?'disabled':''} onclick="runGeneration(true)">🔀 换一版</button>
+    <button class="btn" ${working?'disabled':''} onclick="runGeneration(true)">🔀 Shuffle</button>
     <button class="btn primary" ${working||!tokenOK?'disabled':''} onclick="runGeneration(false)">
-      ${working?'生成中…':'生成 · 5 token'}
+      ${working?'Generating...':'Generate · 5 token'}
     </button>
-    ${hasResult?`<button class="btn gold" onclick="publishBranch()">✓ 使用并挂树</button>`:''}`;
+    ${hasResult?`<button class="btn gold" onclick="publishBranch()">✓ Use and Attach</button>`:''}`;
 }
 
 function syncModalToken() {
@@ -1504,7 +1504,7 @@ function selectScene(assetId) { S.modalSelectedScene=assetId; renderModal(); }
 function togglePayload() {
   S.modalPayloadVisible=!S.modalPayloadVisible;
   document.getElementById('tech-payload').classList.toggle('open',S.modalPayloadVisible);
-  document.getElementById('tech-toggle').textContent=S.modalPayloadVisible?'收起 API 请求':'查看 API 请求';
+  document.getElementById('tech-toggle').textContent=S.modalPayloadVisible?'Hide API Request':'View API Request';
   if (S.modalPayloadVisible) updatePayloadDisplay();
 }
 
@@ -1546,9 +1546,9 @@ function updatePayloadDisplay() {
 async function runGeneration(shuffle) {
   const promptEl=document.getElementById('modal-prompt');
   const userPrompt=promptEl?promptEl.value.trim():'';
-  if (!userPrompt){S.modalError='请先写一句下一幕剧情。';renderModal();return;}
-  if (!S.modalSelectedChars.size){S.modalError='至少选择一个出场角色。';renderModal();return;}
-  if (S.tokenBalance<5){S.modalError='Token 不足，无法生成。';renderModal();return;}
+  if (!userPrompt){S.modalError='Write the next scene first.';renderModal();return;}
+  if (!S.modalSelectedChars.size){S.modalError='Select at least one character.';renderModal();return;}
+  if (S.tokenBalance<5){S.modalError='Not enough tokens to generate.';renderModal();return;}
   S.modalPrompt=userPrompt; S.modalError=''; S.modalResult=null;
   if (shuffle) S.modalResultIndex=(S.modalResultIndex+1)%PRESET_RESULTS.length;
   S.tokenBalance-=5; S.modalPhase='generating';
@@ -1561,7 +1561,7 @@ async function runGeneration(shuffle) {
     S.modalResult=result; S.modalPhase='preview';
   } catch(e) {
     S.modalPhase='draft'; S.tokenBalance+=5;
-    S.modalError=e.message||'生成失败，请重试';
+    S.modalError=e.message||'Generation failed. Please try again.';
   }
   renderModal(); syncModalToken();
 }
@@ -1582,34 +1582,34 @@ async function realGenerate(payload) {
     aspect_ratio:payload.aspect_ratio,motion_mode:payload.motion_mode,
     camera_movement:payload.camera_movement,seed:payload.seed,
   })});
-  if (!res.ok) throw new Error(`API 错误 ${res.status}`);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
   const data=await res.json();
-  if (data.ErrCode!==0) throw new Error(data.ErrMsg||'提交失败');
+  if (data.ErrCode!==0) throw new Error(data.ErrMsg||'Submission failed');
   const gid=data.Resp?.video_id;
-  if (!gid) throw new Error('未获取到 generation_id');
+  if (!gid) throw new Error('No generation_id returned');
   for (let i=0;i<60;i++) {
     await sleep(5000);
     const pr=await fetch(`${base}/openapi/v2/video/result/${gid}`,{headers});
     const pd=await pr.json();
     const status=pd.Resp?.status;
-    if (status===1) return {videoUrl:pd.Resp.video_url,title:'新芽·'+S.modalPrompt.slice(0,10),synopsis:S.modalPrompt,generationId:gid};
-    if (status===7) throw new Error('审核失败，请修改提示词');
-    if (status===8) throw new Error('生成失败，请重试');
+    if (status===1) return {videoUrl:pd.Resp.video_url,title:'New Sprout · '+S.modalPrompt.slice(0,10),synopsis:S.modalPrompt,generationId:gid};
+    if (status===7) throw new Error('Review failed. Please revise the prompt.');
+    if (status===8) throw new Error('Generation failed. Please try again.');
   }
-  throw new Error('生成超时（>5 分钟）');
+  throw new Error('Generation timed out (>5 minutes)');
 }
 
 function publishBranch() {
   if (!S.modalResult) return;
-  if (!confirm('确定把这条分支加入剧情树吗？')) return;
+  if (!confirm('Add this branch to the story tree?')) return;
   const newId=uid();
   const parent=S.nodes[S.modalParentId];
   S.nodes[newId]={
     nodeId:newId, parentId:S.modalParentId, storyId:'story_001',
-    title:S.modalResult.title||'新芽·'+S.modalPrompt.slice(0,10),
+    title:S.modalResult.title||'New Sprout · '+S.modalPrompt.slice(0,10),
     synopsis:S.modalResult.synopsis||S.modalPrompt,
     prompt:S.modalPrompt,
-    authorId:'user_me', authorName:'你',
+    authorId:'user_me', authorName:'You',
     derivedFrom:parent.authorName,
     videoUrl:S.modalResult.videoUrl||'',
     duration:5, ageDays:0, isFreeWindow:true, unlockPrice:1.9,
@@ -1620,7 +1620,7 @@ function publishBranch() {
   S.treePositions=computeLayout('node_root');
   drawTree();
   setTimeout(()=>openPanel(newId), 200);
-  toast('🌿 新分支已加入剧情树！');
+  toast('🌿 New branch added to the story tree!');
 }
 
 /* ──────────────────────────────────────────────────────────

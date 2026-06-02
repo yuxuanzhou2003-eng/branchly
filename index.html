@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -11,13 +11,13 @@
       <aside class="branch-panel">
         <div class="brand-block">
           <span class="kicker">StoryTree / Fusion</span>
-          <h1>短剧生成工作台</h1>
-          <p>沿父链继承角色、场景与风格，模拟 Fusion 生成链路，用预制视频完成现场分支闭环。</p>
+          <h1>Short Drama Studio</h1>
+          <p>Inherit characters, scenes, and style from the parent chain, simulate the Fusion pipeline, and close the branch loop with preset video.</p>
         </div>
 
         <section class="tree-section" aria-labelledby="tree-title">
           <div class="section-heading">
-            <h2 id="tree-title">剧情父节点</h2>
+            <h2 id="tree-title">Story Parent Nodes</h2>
             <span id="node-count">0 nodes</span>
           </div>
           <div class="tree-list" id="tree-list"></div>
@@ -28,7 +28,7 @@
         <header class="workspace-header">
           <div>
             <span class="kicker">Mini P0 Flow</span>
-            <h2 id="selected-title">选择一个节点开始续写</h2>
+            <h2 id="selected-title">Select a node to continue</h2>
           </div>
           <div class="token-wallet">
             <span id="api-status">Demo Logic</span>
@@ -39,35 +39,35 @@
         <div class="workflow-grid">
           <section class="panel asset-panel" aria-labelledby="assets-title">
             <div class="section-heading">
-              <h3 id="assets-title">继承资产包</h3>
-              <span id="asset-summary">自动计算</span>
+              <h3 id="assets-title">Inherited Asset Pack</h3>
+              <span id="asset-summary">Auto calculated</span>
             </div>
             <div class="asset-actions">
-              <button class="secondary-button" id="upload-local-button" type="button">检查继承链路</button>
-              <span id="upload-hint">本演示使用预制 img_id，不调用 API</span>
+              <button class="secondary-button" id="upload-local-button" type="button">Check Inheritance Chain</button>
+              <span id="upload-hint">This demo uses preset img_ids and does not call the API</span>
             </div>
             <div class="asset-strip" id="asset-strip"></div>
           </section>
 
           <section class="panel prompt-panel" aria-labelledby="prompt-title">
             <div class="section-heading">
-              <h3 id="prompt-title">本镜生成</h3>
+              <h3 id="prompt-title">Shot Generation</h3>
               <span id="branch-path">node_V0</span>
             </div>
 
-            <label class="field-label" for="prompt-input">一句话剧情</label>
+            <label class="field-label" for="prompt-input">One-line Story Prompt</label>
             <textarea id="prompt-input" rows="5"></textarea>
 
             <div class="control-grid">
               <label class="control">
-                <span>生成模式</span>
+                <span>Generation Mode</span>
                 <select id="mode-select">
-                  <option value="preset">预制拟实时</option>
-                  <option value="fusion">Fusion Payload 展示</option>
+                  <option value="preset">Preset Near Real-time</option>
+                  <option value="fusion">Fusion Payload Preview</option>
                 </select>
               </label>
               <label class="control">
-                <span>模型</span>
+                <span>Model</span>
                 <select id="model-select">
                   <option value="c1">C1</option>
                   <option value="v6">V6</option>
@@ -75,25 +75,25 @@
                 </select>
               </label>
               <label class="control">
-                <span>时长</span>
+                <span>Duration</span>
                 <select id="duration-select">
                   <option value="5">5s</option>
                   <option value="8">8s</option>
                 </select>
               </label>
               <label class="control">
-                <span>运镜</span>
+                <span>Camera Movement</span>
                 <select id="camera-select">
-                  <option value="push_in">缓慢推进</option>
-                  <option value="static">固定镜头</option>
-                  <option value="pan_left">左移横摇</option>
-                  <option value="handheld">轻微手持</option>
+                  <option value="push_in">Slow Push In</option>
+                  <option value="static">Static Shot</option>
+                  <option value="pan_left">Pan Left</option>
+                  <option value="handheld">Subtle Handheld</option>
                 </select>
               </label>
             </div>
 
             <label class="control scene-control">
-              <span>场景</span>
+              <span>Scene</span>
               <select id="scene-select"></select>
             </label>
 
@@ -101,16 +101,16 @@
 
             <div class="action-row">
               <button class="secondary-button" id="shuffle-button" type="button">Shuffle</button>
-              <button class="primary-button" id="generate-button" type="button">生成预制分支</button>
-              <button class="ghost-button" id="publish-button" type="button" disabled>使用并挂树</button>
+              <button class="primary-button" id="generate-button" type="button">Generate Preset Branch</button>
+              <button class="ghost-button" id="publish-button" type="button" disabled>Use and Attach</button>
             </div>
-            <p class="generate-hint" id="generate-hint">检查生成条件中...</p>
+            <p class="generate-hint" id="generate-hint">Checking generation requirements...</p>
           </section>
 
           <section class="panel result-panel" aria-labelledby="result-title">
             <div class="section-heading">
-              <h3 id="result-title">异步任务</h3>
-              <span id="task-id">待提交</span>
+              <h3 id="result-title">Async Task</h3>
+              <span id="task-id">Pending</span>
             </div>
 
             <div class="status-stack" id="status-stack"></div>
@@ -118,7 +118,7 @@
             <div class="preview-shell" id="preview-shell">
               <div class="preview-empty">
                 <span>V</span>
-                <p>生成完成后在这里预览预制单镜头片段</p>
+                <p>Preview the generated preset single-shot clip here</p>
               </div>
             </div>
           </section>

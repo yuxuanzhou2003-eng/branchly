@@ -10,7 +10,7 @@ const assets = {
   asset_lx: {
     assetId: "asset_lx",
     type: "character",
-    name: "林夏",
+    name: "Lin Xia",
     refName: "linxia",
     pixverseImgId: 875295974,
     refImageUrl: media.linxia,
@@ -21,7 +21,7 @@ const assets = {
   asset_cy: {
     assetId: "asset_cy",
     type: "character",
-    name: "陈翊",
+    name: "Chen Yi",
     refName: "chenyi",
     pixverseImgId: 875295975,
     refImageUrl: media.chenyi,
@@ -32,7 +32,7 @@ const assets = {
   asset_meteor: {
     assetId: "asset_meteor",
     type: "character",
-    name: "气象学家",
+    name: "Meteorologist",
     refName: "meteorologist",
     pixverseImgId: 875295976,
     refImageUrl: media.meetingroom,
@@ -43,7 +43,7 @@ const assets = {
   asset_scene_meeting: {
     assetId: "asset_scene_meeting",
     type: "scene",
-    name: "玻璃会议室",
+    name: "Glass Conference Room",
     refName: "meetingroom",
     pixverseImgId: 20001,
     refImageUrl: media.meetingroom,
@@ -51,7 +51,7 @@ const assets = {
   asset_scene_blizzard: {
     assetId: "asset_scene_blizzard",
     type: "scene",
-    name: "暴雪街头",
+    name: "Blizzard Street",
     refName: "blizzard",
     pixverseImgId: 20002,
     refImageUrl: media.blizzard,
@@ -59,7 +59,7 @@ const assets = {
   asset_scene_lab: {
     assetId: "asset_scene_lab",
     type: "scene",
-    name: "昏暗实验室",
+    name: "Dim Laboratory",
     refName: "lab",
     pixverseImgId: 20003,
     refImageUrl: media.meetingroom,
@@ -67,7 +67,7 @@ const assets = {
   asset_style_main: {
     assetId: "asset_style_main",
     type: "style",
-    name: "寒潮主风格",
+    name: "Coldwave Main Style",
     refName: "coldwave",
     promptPrefix:
       "vertical 9:16, cinematic short-drama, high contrast, cold winter light, shallow depth of field, film grain, tense revenge drama mood",
@@ -78,8 +78,8 @@ let nodes = {
   node_V0: {
     nodeId: "node_V0",
     parentId: null,
-    title: "母片·寒潮重生",
-    synopsis: "死亡闪回后，林夏在暴雪夜重新醒来，发现自己回到被陈家羞辱的那一天。",
+    title: "Master Cut · Coldwave Rebirth",
+    synopsis: "After a death flashback, Lin Xia wakes again on a blizzard night and realizes she has returned to the day the Chen family humiliated her.",
     prompt:
       "@linxia wakes up in @blizzard, realizing she has returned to the day before her death.",
     ownAssetIds: [
@@ -95,8 +95,8 @@ let nodes = {
   node_V1: {
     nodeId: "node_V1",
     parentId: "node_V0",
-    title: "救世线·当众撕票",
-    synopsis: "林夏在会议室当众撕毁支票，把陈翊的羞辱变成全场反击。",
+    title: "Savior Path · Tearing the Check",
+    synopsis: "Lin Xia tears up the check in the conference room, turning Chen Yi's humiliation into a public counterattack.",
     prompt:
       "@linxia tears the cheque in front of @chenyi inside @meetingroom, everyone freezes.",
     ownAssetIds: [],
@@ -106,8 +106,8 @@ let nodes = {
   node_V3: {
     nodeId: "node_V3",
     parentId: "node_V0",
-    title: "阴谋线·实验室录音",
-    synopsis: "她追到昏暗实验室，发现气象学家留下的灾难录音。",
+    title: "Conspiracy Path · Lab Recording",
+    synopsis: "She follows the trail to a dim laboratory and discovers the disaster recording left by the meteorologist.",
     prompt:
       "@linxia finds a hidden recorder in @lab while @meteorologist appears on a cracked monitor.",
     ownAssetIds: ["asset_meteor", "asset_scene_lab"],
@@ -119,22 +119,22 @@ let nodes = {
 const presetResults = [
   {
     resultId: "preset_A",
-    title: "新芽·暴雪回眸",
-    synopsis: "林夏在暴雪中回头，第一次发现陈翊身后还有另一个操盘者。",
+    title: "New Sprout · Look Back in the Blizzard",
+    synopsis: "Lin Xia looks back in the blizzard and notices for the first time that someone else is pulling strings behind Chen Yi.",
     videoUrl: media.preview,
     seed: 120845911,
   },
   {
     resultId: "preset_B",
-    title: "新芽·会议室反击",
-    synopsis: "她把支票推回桌面，会议室灯光骤暗，陈翊终于失去掌控。",
+    title: "New Sprout · Conference Room Counterattack",
+    synopsis: "She pushes the check back across the table, the conference room lights snap dark, and Chen Yi finally loses control.",
     videoUrl: media.preview,
     seed: 573290184,
   },
   {
     resultId: "preset_C",
-    title: "新芽·录音证据",
-    synopsis: "一段旧录音曝光寒潮真相，林夏决定把陈家拖进审判现场。",
+    title: "New Sprout · Recorded Evidence",
+    synopsis: "An old recording exposes the truth behind the coldwave, and Lin Xia decides to drag the Chen family into judgment.",
     videoUrl: media.preview,
     seed: 948220731,
   },
@@ -154,10 +154,10 @@ const state = {
 };
 
 const steps = [
-  { key: "assets", label: "读取继承资产", hint: "父链累积角色/场景/风格" },
-  { key: "payload", label: "组装 Fusion Payload", hint: "subject + background + prompt" },
-  { key: "matching", label: "匹配预制结果", hint: "拟实时返回 3-5 秒" },
-  { key: "success", label: "预览生成片段", hint: "可 Shuffle / 使用" },
+  { key: "assets", label: "Read Inherited Assets", hint: "Parent chain accumulates characters, scenes, and style" },
+  { key: "payload", label: "Assemble Fusion Payload", hint: "Subject + background + prompt" },
+  { key: "matching", label: "Match Preset Result", hint: "Near real-time return in 3-5 seconds" },
+  { key: "success", label: "Preview Generated Clip", hint: "Ready to shuffle or use" },
 ];
 
 const el = {
@@ -302,7 +302,7 @@ function renderAssets() {
   const { available } = selectedAssets();
   const refs = available.filter((asset) => asset.type !== "style");
   el.assetSummary.textContent = `${refs.length} inherited`;
-  el.uploadHint.textContent = `当前分支继承 ${refs.map((asset) => asset.name).join("、")}`;
+  el.uploadHint.textContent = `Current branch inherits ${refs.map((asset) => asset.name).join(", ")}`;
   el.assetStrip.innerHTML = "";
 
   available.forEach((asset) => {
@@ -315,7 +315,7 @@ function renderAssets() {
         <span>${asset.type} · @${asset.refName}</span>
         ${
           asset.type === "style"
-            ? `<small>风格前缀自动继承</small>`
+            ? `<small>Style prefix auto-inherited</small>`
             : `<small>mock img_id ${asset.pixverseImgId}</small>`
         }
       </div>
@@ -389,7 +389,7 @@ function renderPreview(result = state.currentResult) {
     el.previewShell.innerHTML = `
       <div class="preview-empty">
         <span>V</span>
-        <p>生成完成后在这里预览预制单镜头片段</p>
+        <p>Preview the generated preset single-shot clip here</p>
       </div>
     `;
     return;
@@ -416,16 +416,16 @@ function updateGenerateButton() {
   el.generateHint.classList.toggle("is-ready", !blocker && !isWorking);
   el.generateHint.classList.toggle("is-blocked", Boolean(blocker) && !isWorking);
   el.generateHint.textContent = isWorking
-    ? "拟实时生成中：正在读取资产、组装 payload、匹配预制片段。"
-    : blocker || "逻辑已就绪：点击生成会返回一个预制视频分支。";
+    ? "Near real-time generation: reading assets, assembling payload, and matching a preset clip."
+    : blocker || "Ready: click Generate to return a preset video branch.";
 }
 
 function getGenerateBlocker() {
   const { characters } = selectedAssets();
-  if (!el.promptInput.value.trim()) return "请先写一句剧情 prompt。";
-  if (!characters.length) return "至少勾选一个出场角色。";
-  if (buildPayload().image_references.length > 3) return "Fusion 一次最多 3 个参考，请减少出场角色或场景。";
-  if (state.tokenBalance < 5) return "demo token 不足。";
+  if (!el.promptInput.value.trim()) return "Write a one-line story prompt first.";
+  if (!characters.length) return "Select at least one character.";
+  if (buildPayload().image_references.length > 3) return "Fusion supports at most 3 references per run. Remove a character or scene.";
+  if (state.tokenBalance < 5) return "Not enough demo tokens.";
   return "";
 }
 
@@ -436,7 +436,7 @@ function renderAll() {
   el.tokenBalance.textContent = state.tokenBalance;
   el.apiStatus.textContent = "Demo Token";
   el.promptInput.value = node.prompt;
-  el.taskId.textContent = state.taskId || "待生成";
+  el.taskId.textContent = state.taskId || "Not generated";
 
   renderTree();
   renderControls();
@@ -501,7 +501,7 @@ function runGeneration(isShuffle = false) {
       renderPreview(result);
       el.publishButton.disabled = false;
       updateGenerateButton();
-      showToast(isShuffle ? "已换一版预制分支。" : "预制生成完成，可以使用并挂树。");
+      showToast(isShuffle ? "Swapped to another preset branch." : "Preset generation complete. You can use it and attach it to the tree.");
     }, 3300),
   );
 }
@@ -533,7 +533,7 @@ function publishBranch() {
     videoUrl: state.currentResult.videoUrl,
   };
 
-  showToast(`新分支「${state.currentResult.title}」已挂到 ${parent.title} 后面。`);
+  showToast(`New branch "${state.currentResult.title}" was attached after ${parent.title}.`);
   selectNode(nodeId);
 }
 
@@ -543,7 +543,7 @@ function createTitle(prompt, fallback) {
     .replace(/[,.，。]/g, " ")
     .trim();
   const short = clean.slice(0, 12);
-  return short ? `新芽·${short}` : fallback;
+  return short ? `New Sprout · ${short}` : fallback;
 }
 
 function clearTimers() {
@@ -578,7 +578,7 @@ el.shuffleButton.addEventListener("click", () => runGeneration(true));
 el.publishButton.addEventListener("click", publishBranch);
 el.uploadLocalButton.addEventListener("click", () => {
   renderAssets();
-  showToast("继承链路正常：资产来自当前节点到根节点的父链。");
+  showToast("Inheritance chain looks good: assets come from the parent chain between this node and the root.");
 });
 
 renderAll();
