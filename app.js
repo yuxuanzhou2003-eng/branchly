@@ -1,9 +1,9 @@
 const media = {
-  linxia: "@linxia.png",
-  chenyi: "@chenyi.png",
-  meetingroom: "玻璃会议室.png",
-  blizzard: "暴雪街头.png",
-  preview: "PixVerse_V6_Image_Text_720P_【画面000004｜冷开场死亡闪回】.mp4",
+  linxia: "lin-xia.png",
+  chenyi: "chen-yi.png",
+  meetingroom: "glass-conference-room.png",
+  blizzard: "blizzard-street.png",
+  preview: "cold-open-death-flashback.mp4",
 };
 
 const assets = {
