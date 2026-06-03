@@ -4,6 +4,8 @@
 
 # Environment
 .env
+branchly-storage-key.json
+.checkpoint-store/
 
 # Test screenshots
 branchly_*.png

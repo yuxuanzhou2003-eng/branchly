@@ -1,11 +1,13 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
-const { randomUUID } = require("node:crypto");
+const { createSign, randomUUID } = require("node:crypto");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 5173);
 const apiBase = "https://app-api.pixverse.ai/openapi/v2";
+const checkpointStorageRoot = process.env.CHECKPOINT_LOCAL_DIR || ".checkpoint-store";
+let gcsTokenCache = null;
 
 loadEnv();
 
@@ -64,6 +66,66 @@ async function routeApi(req, res) {
       hasApiKey: keyState.valid,
       keyState: keyState.reason,
       balance,
+      checkpointStorage: getCheckpointStorageState(),
+    });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname === "/api/storage/health") {
+    sendJson(res, 200, {
+      ok: true,
+      checkpointStorage: getCheckpointStorageState(),
+      layout: {
+        checkpointManifest: "stories/{storyId}/checkpoints/{nodeId}/manifest.json",
+        assetDescriptor: "assets/{assetId}.json",
+      },
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/assets") {
+    const body = await readJson(req);
+    const asset = normalizeAssetDescriptor(body.asset || body);
+    await saveAssetDescriptor(asset);
+    sendJson(res, 200, {
+      ok: true,
+      asset,
+      storageKey: assetStorageKey(asset.assetId),
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/assets/upload-local") {
+    const body = await readJson(req);
+    const uploaded = await uploadLocalAssetToCheckpointStorage(body);
+    sendJson(res, 200, { ok: true, ...uploaded });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/assets/")) {
+    const assetId = decodeURIComponent(url.pathname.replace("/api/assets/", ""));
+    const asset = await loadAssetDescriptor(assetId);
+    sendJson(res, 200, { ok: true, asset });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/checkpoints") {
+    const body = await readJson(req);
+    const saved = await saveCheckpointBundle(body);
+    sendJson(res, 200, { ok: true, ...saved });
+    return;
+  }
+
+  if (req.method === "GET" && url.pathname.startsWith("/api/checkpoints/")) {
+    const nodeId = decodeURIComponent(url.pathname.replace("/api/checkpoints/", ""));
+    const storyId = url.searchParams.get("storyId") || "story_001";
+    const includeAssets = url.searchParams.get("includeAssets") !== "false";
+    const checkpoint = await loadCheckpointManifest(storyId, nodeId);
+    const assets = includeAssets ? await resolveCheckpointAssets(storyId, nodeId) : null;
+    sendJson(res, 200, {
+      ok: true,
+      checkpoint,
+      inheritedAssets: assets,
     });
     return;
   }
@@ -231,6 +293,367 @@ function normalizeFusionPayload(payload) {
   if (payload.model && modelMap[payload.model]) {
     payload.model = modelMap[payload.model];
   }
+}
+
+async function saveCheckpointBundle(body) {
+  const checkpoint = normalizeCheckpointManifest(body.checkpoint || body);
+  const assets = Array.isArray(body.assets) ? body.assets.map(normalizeAssetDescriptor) : [];
+  const ownAssetIds = new Set(checkpoint.ownAssetIds);
+
+  for (const asset of assets) {
+    ownAssetIds.add(asset.assetId);
+    await saveAssetDescriptor(asset);
+  }
+
+  checkpoint.ownAssetIds = [...ownAssetIds];
+  await writeStorageJson(checkpointStorageKey(checkpoint.storyId, checkpoint.nodeId), checkpoint);
+
+  return {
+    checkpoint,
+    savedAssets: assets,
+    storageKey: checkpointStorageKey(checkpoint.storyId, checkpoint.nodeId),
+  };
+}
+
+function normalizeCheckpointManifest(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Missing checkpoint manifest.");
+  }
+
+  const nodeId = String(raw.nodeId || "").trim();
+  if (!nodeId) throw new Error("checkpoint.nodeId is required.");
+
+  const storyId = String(raw.storyId || "story_001").trim();
+  const now = new Date().toISOString();
+
+  return {
+    schemaVersion: 1,
+    storyId,
+    nodeId,
+    parentId: raw.parentId || null,
+    title: raw.title || "",
+    synopsis: raw.synopsis || "",
+    prompt: raw.prompt || "",
+    video: normalizeVideoResource(raw.video || raw.videoUrl),
+    config: raw.config && typeof raw.config === "object" ? raw.config : {},
+    ownAssetIds: Array.isArray(raw.ownAssetIds) ? raw.ownAssetIds.map(String) : [],
+    createdAt: raw.createdAt || now,
+    updatedAt: now,
+    metadata: raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
+  };
+}
+
+function normalizeAssetDescriptor(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Missing asset descriptor.");
+  }
+
+  const assetId = String(raw.assetId || "").trim();
+  if (!assetId) throw new Error("asset.assetId is required.");
+
+  const type = String(raw.type || "reference").trim();
+  const refImageUrl = raw.refImageUrl || raw.url || "";
+
+  return {
+    schemaVersion: 1,
+    assetId,
+    type,
+    name: raw.name || assetId,
+    refName: raw.refName || assetId,
+    pixverseImgId: raw.pixverseImgId || raw.img_id || null,
+    refImageUrl,
+    gcsUri: raw.gcsUri || raw.gcs_uri || gcsUriForObject(raw.gcsObject || raw.gcs_object || ""),
+    gcsObject: raw.gcsObject || raw.gcs_object || objectNameFromGcsUri(raw.gcsUri || raw.gcs_uri || ""),
+    promptPrefix: raw.promptPrefix || "",
+    negativePrompt: raw.negativePrompt || "",
+    metadata: raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
+  };
+}
+
+function normalizeVideoResource(raw) {
+  if (!raw) return null;
+  if (typeof raw === "string") return { url: raw, gcsUri: "", gcsObject: "" };
+  if (typeof raw !== "object") return null;
+
+  return {
+    url: raw.url || raw.videoUrl || "",
+    gcsUri: raw.gcsUri || raw.gcs_uri || gcsUriForObject(raw.gcsObject || raw.gcs_object || ""),
+    gcsObject: raw.gcsObject || raw.gcs_object || objectNameFromGcsUri(raw.gcsUri || raw.gcs_uri || ""),
+    generationId: raw.generationId || raw.videoId || "",
+    metadata: raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
+  };
+}
+
+async function saveAssetDescriptor(asset) {
+  await writeStorageJson(assetStorageKey(asset.assetId), asset);
+}
+
+async function loadAssetDescriptor(assetId) {
+  return readStorageJson(assetStorageKey(assetId));
+}
+
+async function loadCheckpointManifest(storyId, nodeId) {
+  return readStorageJson(checkpointStorageKey(storyId, nodeId));
+}
+
+async function resolveCheckpointAssets(storyId, nodeId) {
+  const assetIds = new Set();
+  const chain = [];
+  let currentId = nodeId;
+
+  while (currentId) {
+    const checkpoint = await loadCheckpointManifest(storyId, currentId);
+    chain.unshift({
+      nodeId: checkpoint.nodeId,
+      ownAssetIds: checkpoint.ownAssetIds,
+    });
+    checkpoint.ownAssetIds.forEach((assetId) => assetIds.add(assetId));
+    currentId = checkpoint.parentId;
+  }
+
+  const assets = [];
+  for (const assetId of assetIds) {
+    assets.push(await loadAssetDescriptor(assetId));
+  }
+
+  return { chain, assets };
+}
+
+function checkpointStorageKey(storyId, nodeId) {
+  return storageKey("stories", storyId, "checkpoints", nodeId, "manifest.json");
+}
+
+function assetStorageKey(assetId) {
+  return storageKey("assets", `${assetId}.json`);
+}
+
+function storageKey(...parts) {
+  const prefix = (process.env.GCS_PREFIX || process.env.CHECKPOINT_STORAGE_PREFIX || "branchly").trim();
+  return [prefix, ...parts]
+    .filter(Boolean)
+    .map((part) => String(part).replace(/^\/+|\/+$/g, ""))
+    .join("/");
+}
+
+async function writeStorageJson(key, value) {
+  const payload = JSON.stringify(value, null, 2);
+
+  if (isGcsConfigured()) {
+    await writeStorageBytes(key, payload, "application/json; charset=utf-8");
+    return;
+  }
+
+  const absolute = resolveStoragePath(key);
+  await fs.promises.mkdir(path.dirname(absolute), { recursive: true });
+  await fs.promises.writeFile(absolute, payload);
+}
+
+async function writeStorageBytes(key, value, contentType) {
+  if (isGcsConfigured()) {
+    await gcsUploadObject(key, value, contentType);
+    return;
+  }
+
+  const absolute = resolveStoragePath(key);
+  await fs.promises.mkdir(path.dirname(absolute), { recursive: true });
+  await fs.promises.writeFile(absolute, value);
+}
+
+async function readStorageJson(key) {
+  let raw;
+
+  if (isGcsConfigured()) {
+    raw = await gcsDownloadObject(key);
+  } else {
+    const absolute = resolveStoragePath(key);
+    raw = await fs.promises.readFile(absolute, "utf8");
+  }
+
+  return JSON.parse(raw);
+}
+
+function getCheckpointStorageState() {
+  return isGcsConfigured()
+    ? {
+        backend: "gcs",
+        bucket: process.env.GCS_BUCKET,
+        prefix: process.env.GCS_PREFIX || process.env.CHECKPOINT_STORAGE_PREFIX || "branchly",
+      }
+    : {
+        backend: "local",
+        directory: checkpointStorageRoot,
+        note: "Set GCS_BUCKET plus GOOGLE_APPLICATION_CREDENTIALS or GCS_SERVICE_ACCOUNT_JSON to store checkpoints in Google Cloud Storage.",
+      };
+}
+
+async function uploadLocalAssetToCheckpointStorage(body) {
+  if (!body || typeof body !== "object") {
+    throw new Error("Missing local asset upload body.");
+  }
+
+  const filePath = String(body.filePath || "").trim();
+  if (!filePath) throw new Error("filePath is required.");
+
+  const assetId = String(body.assetId || body.asset?.assetId || "").trim();
+  if (!assetId) throw new Error("assetId is required.");
+
+  const absolute = resolveSafePath(filePath);
+  const bytes = await fs.promises.readFile(absolute);
+  const objectName = storageKey("assets", assetId, path.basename(absolute));
+  await writeStorageBytes(objectName, bytes, mimeForPath(absolute));
+
+  const asset = normalizeAssetDescriptor({
+    ...(body.asset || {}),
+    ...body,
+    assetId,
+    gcsObject: objectName,
+    gcsUri: gcsUriForObject(objectName),
+    refImageUrl: body.refImageUrl || body.asset?.refImageUrl || filePath,
+  });
+  await saveAssetDescriptor(asset);
+
+  return {
+    asset,
+    objectName,
+    storageKey: assetStorageKey(asset.assetId),
+  };
+}
+
+function isGcsConfigured() {
+  return Boolean(process.env.GCS_BUCKET && getServiceAccountConfig());
+}
+
+async function gcsUploadObject(objectName, body, contentType) {
+  const bucket = encodeURIComponent(process.env.GCS_BUCKET);
+  const name = encodeURIComponent(objectName);
+  const response = await fetch(
+    `https://storage.googleapis.com/upload/storage/v1/b/${bucket}/o?uploadType=media&name=${name}`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${await getGcsAccessToken()}`,
+        "Content-Type": contentType,
+      },
+      body,
+    },
+  );
+
+  await ensureGcsOk(response, `upload ${objectName}`);
+}
+
+async function gcsDownloadObject(objectName) {
+  const bucket = encodeURIComponent(process.env.GCS_BUCKET);
+  const name = encodeURIComponent(objectName);
+  const response = await fetch(
+    `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media`,
+    {
+      headers: {
+        Authorization: `Bearer ${await getGcsAccessToken()}`,
+      },
+    },
+  );
+
+  await ensureGcsOk(response, `download ${objectName}`);
+  return response.text();
+}
+
+async function ensureGcsOk(response, action) {
+  if (response.ok) return;
+  const text = await response.text();
+  throw new Error(`GCS ${action} failed (${response.status}): ${text}`);
+}
+
+async function getGcsAccessToken() {
+  if (gcsTokenCache && gcsTokenCache.expiresAt > Date.now() + 60_000) {
+    return gcsTokenCache.accessToken;
+  }
+
+  const serviceAccount = getServiceAccountConfig();
+  if (!serviceAccount) {
+    throw new Error("GCS service account credentials are not configured.");
+  }
+
+  const tokenUri = serviceAccount.token_uri || "https://oauth2.googleapis.com/token";
+  const now = Math.floor(Date.now() / 1000);
+  const header = base64UrlJson({ alg: "RS256", typ: "JWT" });
+  const claims = base64UrlJson({
+    iss: serviceAccount.client_email,
+    scope: "https://www.googleapis.com/auth/devstorage.read_write",
+    aud: tokenUri,
+    exp: now + 3600,
+    iat: now,
+  });
+  const unsigned = `${header}.${claims}`;
+  const signer = createSign("RSA-SHA256");
+  signer.update(unsigned);
+  signer.end();
+  const signature = signer.sign(serviceAccount.private_key).toString("base64url");
+
+  const response = await fetch(tokenUri, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: `${unsigned}.${signature}`,
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.access_token) {
+    throw new Error(`GCS auth failed (${response.status}): ${JSON.stringify(data)}`);
+  }
+
+  gcsTokenCache = {
+    accessToken: data.access_token,
+    expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000,
+  };
+  return gcsTokenCache.accessToken;
+}
+
+function getServiceAccountConfig() {
+  if (process.env.GCS_SERVICE_ACCOUNT_JSON) {
+    return JSON.parse(process.env.GCS_SERVICE_ACCOUNT_JSON);
+  }
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (fs.existsSync(credentialPath)) {
+      return JSON.parse(fs.readFileSync(credentialPath, "utf8"));
+    }
+  }
+
+  return null;
+}
+
+function base64UrlJson(value) {
+  return Buffer.from(JSON.stringify(value)).toString("base64url");
+}
+
+function gcsUriForObject(objectName) {
+  if (!objectName || !process.env.GCS_BUCKET) return "";
+  return `gs://${process.env.GCS_BUCKET}/${objectName}`;
+}
+
+function objectNameFromGcsUri(uri) {
+  if (!uri || !uri.startsWith("gs://")) return "";
+  const withoutScheme = uri.slice("gs://".length);
+  const slashIndex = withoutScheme.indexOf("/");
+  return slashIndex === -1 ? "" : withoutScheme.slice(slashIndex + 1);
+}
+
+function resolveStoragePath(key) {
+  const storageRoot = path.isAbsolute(checkpointStorageRoot)
+    ? checkpointStorageRoot
+    : path.join(root, checkpointStorageRoot);
+  const base = path.resolve(storageRoot);
+  const absolute = path.resolve(base, key);
+  const relative = path.relative(base, absolute);
+
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error("Storage key escapes checkpoint storage root.");
+  }
+
+  return absolute;
 }
 
 async function serveStatic(req, res) {
