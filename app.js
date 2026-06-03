@@ -155,7 +155,7 @@ const state = {
 
 const steps = [
   { key: "assets", label: "Read Inherited Assets", hint: "Parent chain accumulates characters, scenes, and style" },
-  { key: "payload", label: "Assemble Fusion Payload", hint: "Subject + background + prompt" },
+  { key: "payload", label: "Assemble Google Payload", hint: "Prompt + inherited visual references" },
   { key: "matching", label: "Match Preset Result", hint: "Near real-time return in 3-5 seconds" },
   { key: "success", label: "Preview Generated Clip", hint: "Ready to shuffle or use" },
 ];
@@ -260,14 +260,15 @@ function buildPayload() {
 
   return {
     demo_mode: "pre_generated_fusion_simulation",
-    would_call: "/openapi/v2/video/fusion/generate",
+    provider: "google",
+    would_call: "/api/generate",
     matched_preset: presetResults[state.resultIndex].resultId,
     image_references: references.slice(0, 3),
     prompt,
     negative_prompt: negativePrompt,
     model: el.modelSelect.value,
     duration: Number(el.durationSelect.value),
-    quality: "540p",
+    quality: "720p",
     aspect_ratio: "9:16",
     motion_mode: "normal",
     camera_movement: el.cameraSelect.value,
@@ -424,7 +425,7 @@ function getGenerateBlocker() {
   const { characters } = selectedAssets();
   if (!el.promptInput.value.trim()) return "Write a one-line story prompt first.";
   if (!characters.length) return "Select at least one character.";
-  if (buildPayload().image_references.length > 3) return "Fusion supports at most 3 references per run. Remove a character or scene.";
+  if (buildPayload().image_references.length > 3) return "Google Omni video supports at most 3 visual references per run. Remove a character or scene.";
   if (state.tokenBalance < 5) return "Not enough demo tokens.";
   return "";
 }

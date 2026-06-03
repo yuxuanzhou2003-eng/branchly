@@ -41,9 +41,9 @@ const server = http.createServer(async (req, res) => {
 server.listen(port, () => {
   console.log(`StoryTree video workflow: http://localhost:${port}`);
   console.log(
-    process.env.PIXVERSE_API_KEY
-      ? "PIXVERSE_API_KEY loaded."
-      : "PIXVERSE_API_KEY is missing. Set it before generating videos.",
+    getVideoProvider() === "google"
+      ? `Video generation provider: Google Vertex AI (${getGoogleVideoModel()}).`
+      : "Video generation provider: PixVerse.",
   );
 });
 
@@ -67,6 +67,7 @@ async function routeApi(req, res) {
       keyState: keyState.reason,
       balance,
       checkpointStorage: getCheckpointStorageState(),
+      videoGeneration: getVideoGenerationState(),
     });
     return;
   }
@@ -178,10 +179,27 @@ async function routeApi(req, res) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/generate") {
-    requireApiKey();
     const { mode = "fusion", payload } = await readJson(req);
-    normalizeFusionPayload(payload);
     validateVideoPayload(payload);
+
+    if (getVideoProvider() === "google") {
+      const raw = await googleGenerateVideo(payload);
+      const operationName = raw.name;
+      if (!operationName) {
+        throw new Error(`Google Veo did not return an operation name: ${JSON.stringify(raw)}`);
+      }
+
+      sendJson(res, 200, {
+        provider: "google",
+        operation_name: operationName,
+        video_id: encodeURIComponent(operationName),
+        raw,
+      });
+      return;
+    }
+
+    requireApiKey();
+    normalizeFusionPayload(payload);
 
     const endpoint = mode === "text" ? "/video/text/generate" : "/video/fusion/generate";
     if (mode !== "text") validateFusionPayload(payload);
@@ -202,8 +220,28 @@ async function routeApi(req, res) {
   }
 
   if (req.method === "GET" && url.pathname.startsWith("/api/status/")) {
-    requireApiKey();
     const videoId = decodeURIComponent(url.pathname.replace("/api/status/", ""));
+
+    if (getVideoProvider() === "google" || videoId.startsWith("projects/")) {
+      const raw = await googleFetchVideoOperation(videoId);
+      const videos = raw.response?.videos || [];
+      const firstVideoUrl = videos[0]?.gcsUri ? gcsUriToHttpsUrl(videos[0].gcsUri) : "";
+      sendJson(res, 200, {
+        provider: "google",
+        result: {
+          done: Boolean(raw.done),
+          videos,
+          video_url: firstVideoUrl,
+          gcs_uri: videos[0]?.gcsUri || "",
+          status: raw.done ? 1 : 5,
+          operation_name: raw.name,
+        },
+        raw,
+      });
+      return;
+    }
+
+    requireApiKey();
     const raw = await pixverseFetch(`/video/result/${videoId}`, {
       method: "GET",
     });
@@ -293,6 +331,173 @@ function normalizeFusionPayload(payload) {
   if (payload.model && modelMap[payload.model]) {
     payload.model = modelMap[payload.model];
   }
+}
+
+async function googleGenerateVideo(payload) {
+  requireGoogleVideoConfig();
+  const body = buildGoogleVideoRequest(payload);
+  const response = await fetch(googleVideoEndpoint("predictLongRunning", payload.model), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...(await getGoogleAuthHeaders()),
+    },
+    body: JSON.stringify(body),
+  });
+
+  return readGoogleJson(response, "Google Veo generation request");
+}
+
+async function googleFetchVideoOperation(operationName) {
+  requireGoogleVideoConfig();
+  const response = await fetch(googleVideoEndpoint("fetchPredictOperation", modelFromOperationName(operationName)), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...(await getGoogleAuthHeaders()),
+    },
+    body: JSON.stringify({ operationName }),
+  });
+
+  return readGoogleJson(response, "Google Veo operation poll");
+}
+
+function buildGoogleVideoRequest(payload) {
+  const prompt = payload.prompt || "";
+  const parameters = {
+    aspectRatio: payload.aspect_ratio || payload.aspectRatio || "9:16",
+    durationSeconds: normalizeGoogleDuration(payload.duration),
+    sampleCount: Number(payload.sampleCount || payload.sample_count || 1),
+    personGeneration: payload.personGeneration || "allow_adult",
+  };
+
+  const negativePrompt = payload.negative_prompt || payload.negativePrompt;
+  if (negativePrompt) parameters.negativePrompt = negativePrompt;
+
+  const seed = Number(payload.seed);
+  if (Number.isFinite(seed)) parameters.seed = seed;
+
+  const resolution = process.env.GOOGLE_VIDEO_RESOLUTION || payload.resolution || payload.quality;
+  if (resolution) parameters.resolution = normalizeGoogleResolution(resolution);
+
+  const storageUri = payload.storageUri || payload.storage_uri || defaultGoogleVideoOutputUri();
+  if (storageUri) parameters.storageUri = storageUri;
+
+  const instance = { prompt };
+  const referenceImages = buildGoogleReferenceImages(payload.image_references || []);
+  if (referenceImages.length) instance.referenceImages = referenceImages;
+
+  return {
+    instances: [instance],
+    parameters,
+  };
+}
+
+function buildGoogleReferenceImages(references) {
+  return references
+    .map((reference) => {
+      const bytesBase64Encoded = reference.bytesBase64Encoded || reference.bytes_base64_encoded;
+      if (!bytesBase64Encoded) return null;
+
+      return {
+        image: {
+          bytesBase64Encoded,
+          mimeType: reference.mimeType || reference.mime_type || "image/png",
+        },
+        referenceType: reference.referenceType || "asset",
+      };
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+function normalizeGoogleDuration(duration) {
+  const value = Number(duration || process.env.GOOGLE_VIDEO_DURATION || 8);
+  return [4, 6, 8].includes(value) ? value : 8;
+}
+
+function normalizeGoogleResolution(resolution) {
+  if (resolution === "540p") return "720p";
+  return resolution;
+}
+
+function defaultGoogleVideoOutputUri() {
+  if (process.env.GOOGLE_VIDEO_OUTPUT_URI) return process.env.GOOGLE_VIDEO_OUTPUT_URI;
+  if (!process.env.GCS_BUCKET) return "";
+  const prefix = process.env.GCS_PREFIX || process.env.CHECKPOINT_STORAGE_PREFIX || "branchly";
+  return `gs://${process.env.GCS_BUCKET}/${prefix}/generated-videos/`;
+}
+
+function googleVideoEndpoint(action, modelId = "") {
+  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+  const project = getGoogleCloudProject();
+  const model = getGoogleVideoModel(modelId);
+  return `https://${location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(project)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:${action}`;
+}
+
+async function readGoogleJson(response, action) {
+  const text = await response.text();
+  const data = text ? JSON.parse(text) : {};
+  if (!response.ok) {
+    throw new Error(`${action} failed (${response.status}): ${JSON.stringify(data)}`);
+  }
+  return data;
+}
+
+function requireGoogleVideoConfig() {
+  if (!getGoogleCloudProject()) {
+    throw new Error("Missing GOOGLE_CLOUD_PROJECT for Google Veo video generation.");
+  }
+
+  const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
+  if (!getServiceAccountConfig() && (!apiKey || apiKey === "your_google_api_key_here")) {
+    throw new Error("Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_API_KEY.");
+  }
+}
+
+function getGoogleCloudProject() {
+  return process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || "";
+}
+
+function getGoogleVideoModel(modelId = "") {
+  return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-fast-generate-preview";
+}
+
+function getVideoProvider() {
+  return (process.env.VIDEO_GENERATION_PROVIDER || "google").trim().toLowerCase();
+}
+
+function getVideoGenerationState() {
+  return getVideoProvider() === "google"
+    ? {
+        provider: "google",
+        model: getGoogleVideoModel(),
+        project: getGoogleCloudProject() || "missing",
+        location: process.env.GOOGLE_CLOUD_LOCATION || "us-central1",
+        outputUri: defaultGoogleVideoOutputUri() || "inline response",
+      }
+    : {
+        provider: "pixverse",
+        hasApiKey: getApiKeyState().valid,
+    };
+}
+
+function modelFromOperationName(operationName) {
+  const match = operationName.match(/\/models\/([^/]+)\//);
+  return match ? decodeURIComponent(match[1]) : "";
+}
+
+async function getGoogleAuthHeaders() {
+  if (getServiceAccountConfig()) {
+    return { Authorization: `Bearer ${await getGoogleAccessToken()}` };
+  }
+
+  const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
+  if (apiKey && apiKey !== "your_google_api_key_here") {
+    return { "x-goog-api-key": apiKey };
+  }
+
+  throw new Error("Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_API_KEY.");
 }
 
 async function saveCheckpointBundle(body) {
@@ -578,7 +783,7 @@ async function getGcsAccessToken() {
   const header = base64UrlJson({ alg: "RS256", typ: "JWT" });
   const claims = base64UrlJson({
     iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/devstorage.read_write",
+        scope: "https://www.googleapis.com/auth/cloud-platform",
     aud: tokenUri,
     exp: now + 3600,
     iat: now,
@@ -639,6 +844,19 @@ function objectNameFromGcsUri(uri) {
   const withoutScheme = uri.slice("gs://".length);
   const slashIndex = withoutScheme.indexOf("/");
   return slashIndex === -1 ? "" : withoutScheme.slice(slashIndex + 1);
+}
+
+function gcsUriToHttpsUrl(uri) {
+  if (!uri || !uri.startsWith("gs://")) return uri || "";
+  const withoutScheme = uri.slice("gs://".length);
+  const slashIndex = withoutScheme.indexOf("/");
+  if (slashIndex === -1) return "";
+  const bucket = withoutScheme.slice(0, slashIndex);
+  const objectName = withoutScheme.slice(slashIndex + 1);
+  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${objectName
+    .split("/")
+    .map(encodeURIComponent)
+    .join("/")}`;
 }
 
 function resolveStoragePath(key) {

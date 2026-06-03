@@ -594,7 +594,7 @@ option { background: #07101e; }
       <div class="hero-content">
         <div class="hero-badge">
           <span class="dot"></span>
-          Featured Premiere · PixVerse Generated
+          Featured Premiere · Google Omni Generated
         </div>
         <div class="hero-title">Coldwave Era · Rebirth</div>
         <div class="hero-desc">The moment she tore up that check in public, the real story began. Every branch on this tree is another possible ending.</div>
@@ -675,7 +675,7 @@ option { background: #07101e; }
     <div class="modal-sheet">
       <div class="modal-header">
         <div class="modal-header-left">
-          <div class="modal-eyebrow">PixVerse Fusion API · Visual Lineage Inheritance</div>
+          <div class="modal-eyebrow">Google Omni Video · Visual Lineage Inheritance</div>
           <h2>Continue a Branch</h2>
         </div>
         <div class="modal-header-right">
@@ -713,17 +713,15 @@ option { background: #07101e; }
 <script>
 /* ──────────────────────────────────────────────────────────
    CONFIG
-   Fill PIXVERSE_API_KEY with your key, set DEMO_MODE=false
-   for real generation. PROXY_URL if you need CORS proxy.
+   Set DEMO_MODE=false to route live generation through server.js,
+   which calls Google Vertex AI Veo / Omni video generation.
    ────────────────────────────────────────────────────────── */
 const CONFIG = {
-  PIXVERSE_API_KEY: '',
   DEMO_MODE: true,
-  PROXY_URL: '',
-  PIXVERSE_BASE: 'https://app-api.pixverse.ai',
+  API_BASE: '',
   DEFAULT_DURATION: 5,
   DEFAULT_QUALITY: '720p',
-  DEFAULT_MODEL: 'v6',
+  DEFAULT_MODEL: 'veo-3.1-fast-generate-preview',
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -1423,7 +1421,7 @@ function renderModal() {
           <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
           <path d="M4 5V3.5a2 2 0 014 0V5" stroke="currentColor" stroke-width="1.2"/>
         </svg>
-        Character identity prefixes are locked. The system automatically assembles Fusion references to preserve visual lineage.
+        Character identity prefixes are locked. The system automatically assembles Google video references to preserve visual lineage.
       </div>
     </div>
     <div>
@@ -1439,7 +1437,7 @@ function renderModal() {
       <div class="options-row">
         <select class="option-select" id="modal-duration"><option value="5">5 sec</option><option value="8">8 sec</option></select>
         <select class="option-select" id="modal-motion"><option value="push_in">Push In</option><option value="pull_back">Pull Back</option><option value="pan_left">Pan Left</option><option value="static">Static</option></select>
-        <select class="option-select" id="modal-model"><option value="v6">V6 General</option><option value="C1">C1 Action</option><option value="v4.5">V4.5</option></select>
+        <select class="option-select" id="modal-model"><option value="veo-3.1-fast-generate-preview">Google Omni · Fast</option><option value="veo-3.1-generate-preview">Google Omni · Quality</option><option value="veo-3.0-generate-001">Google Veo 3</option></select>
       </div>
     </div>`;
 
@@ -1527,8 +1525,9 @@ function buildPayload() {
   const negPrompt=chars.map(c=>c.negativePrompt).filter(Boolean)
     .concat(['no distorted face','no flicker','no sudden identity change']).join(', ');
   return {
-    _demo: CONFIG.DEMO_MODE?'DEMO_MODE: uses preset result':'LIVE: calls PixVerse Fusion',
-    would_call:'/openapi/v2/video/fusion/generate',
+    _demo: CONFIG.DEMO_MODE?'DEMO_MODE: uses preset result':'LIVE: calls Google Omni video generation via /api/generate',
+    provider:'google',
+    would_call:'/api/generate',
     image_references:refs,
     prompt:[style?.promptPrefix,lockedPrefix,userPrompt].filter(Boolean).join('. '),
     negative_prompt:negPrompt,
@@ -1555,7 +1554,7 @@ async function runGeneration(shuffle) {
   renderModal(); syncModalToken();
   const payload=buildPayload();
   try {
-    const result=CONFIG.DEMO_MODE||!CONFIG.PIXVERSE_API_KEY
+    const result=CONFIG.DEMO_MODE
       ? await demoGenerate()
       : await realGenerate(payload);
     S.modalResult=result; S.modalPhase='preview';
@@ -1573,28 +1572,22 @@ async function demoGenerate() {
 }
 
 async function realGenerate(payload) {
-  const base=CONFIG.PROXY_URL||CONFIG.PIXVERSE_BASE;
-  const headers={'Content-Type':'application/json','AI-token':CONFIG.PIXVERSE_API_KEY};
-  const res=await fetch(`${base}/openapi/v2/video/fusion/generate`,{method:'POST',headers,body:JSON.stringify({
-    image_references:payload.image_references,prompt:payload.prompt,
-    negative_prompt:payload.negative_prompt,model:payload.model,
-    duration:payload.duration,quality:payload.quality,
-    aspect_ratio:payload.aspect_ratio,motion_mode:payload.motion_mode,
-    camera_movement:payload.camera_movement,seed:payload.seed,
+  const base=CONFIG.API_BASE||'';
+  const res=await fetch(`${base}/api/generate`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+    mode:'google',
+    payload,
   })});
   if (!res.ok) throw new Error(`API error ${res.status}`);
   const data=await res.json();
-  if (data.ErrCode!==0) throw new Error(data.ErrMsg||'Submission failed');
-  const gid=data.Resp?.video_id;
-  if (!gid) throw new Error('No generation_id returned');
+  const gid=data.video_id || encodeURIComponent(data.operation_name||'');
+  if (!gid) throw new Error('No generation operation returned');
   for (let i=0;i<60;i++) {
     await sleep(5000);
-    const pr=await fetch(`${base}/openapi/v2/video/result/${gid}`,{headers});
+    const pr=await fetch(`${base}/api/status/${gid}`);
     const pd=await pr.json();
-    const status=pd.Resp?.status;
-    if (status===1) return {videoUrl:pd.Resp.video_url,title:'New Sprout · '+S.modalPrompt.slice(0,10),synopsis:S.modalPrompt,generationId:gid};
-    if (status===7) throw new Error('Review failed. Please revise the prompt.');
-    if (status===8) throw new Error('Generation failed. Please try again.');
+    const result=pd.result||{};
+    if (result.done||result.status===1) return {videoUrl:result.video_url||'',gcsUri:result.gcs_uri||'',title:'New Sprout · '+S.modalPrompt.slice(0,10),synopsis:S.modalPrompt,generationId:gid};
+    if (pd.error) throw new Error(pd.error);
   }
   throw new Error('Generation timed out (>5 minutes)');
 }
