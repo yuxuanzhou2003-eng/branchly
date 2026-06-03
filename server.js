@@ -877,7 +877,7 @@ function resolveStoragePath(key) {
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://localhost:${port}`);
   const pathname = decodeURIComponent(url.pathname);
-  const requested = pathname === "/" ? "index.html" : pathname.slice(1);
+  const requested = pathname === "/" ? "storytree_creator.html" : pathname.slice(1);
   const absolute = resolveSafePath(requested);
 
   let stat;
