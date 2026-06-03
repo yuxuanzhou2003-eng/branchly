@@ -178,6 +178,42 @@ async function routeApi(req, res) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/generate-character") {
+    const { description, style = "cinematic realism, detailed" } = await readJson(req);
+    if (!description) throw new Error("description is required.");
+    const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
+    if (!apiKey) throw new Error("Missing GOOGLE_API_KEY.");
+
+    const angles = [
+      { label: "Front",   hint: "front view, facing directly toward the camera, symmetrical pose" },
+      { label: "Side",    hint: "side profile view, 90 degrees, looking left" },
+      { label: "Back",    hint: "back view, facing completely away from camera" },
+    ];
+
+    const images = await Promise.all(angles.map(async (angle) => {
+      const prompt = `Character design reference sheet, ${angle.hint}, full body, ${description}, ${style}, pure white background, single character, no text, no watermark, clean professional illustration`;
+      const resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instances: [{ prompt }],
+            parameters: { sampleCount: 1, aspectRatio: "3:4" },
+          }),
+        }
+      );
+      const data = await resp.json();
+      if (data.error) throw new Error(`Imagen error: ${data.error.message}`);
+      const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+      if (!b64) throw new Error("No image returned for " + angle.label);
+      return { label: angle.label, dataUrl: `data:image/png;base64,${b64}` };
+    }));
+
+    sendJson(res, 200, { images });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/generate") {
     const { mode = "fusion", payload } = await readJson(req);
     validateVideoPayload(payload);

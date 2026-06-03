@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Character Creator · Branchly</title>
+<style>
+:root {
+  --bg: #07101e; --panel: #0d1b2e; --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12); --text: #e8edf5; --text2: #8fa3bc;
+  --faint: #4a5a6e; --alive: #78d8ff; --alive-g: rgba(120,216,255,0.3);
+  --hot: #f0c040; --r: 10px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 14px; min-height: 100vh; display: flex; flex-direction: column;
+}
+
+/* Nav */
+nav {
+  height: 52px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 16px;
+  background: rgba(7,16,30,0.9); backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 10;
+}
+.logo { font-size: 15px; font-weight: 700; color: var(--text); display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.logo-mark { width: 26px; height: 26px; background: linear-gradient(135deg,#1e4d7a,#0d2a45); border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; color: var(--alive); }
+.nav-title { color: var(--text2); font-size: 13px; }
+
+/* Layout */
+.main { display: flex; flex: 1; gap: 0; }
+
+/* Left: form */
+.form-col {
+  width: 320px; flex-shrink: 0; padding: 28px 24px;
+  border-right: 1px solid var(--border); display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto;
+}
+.form-title { font-size: 18px; font-weight: 700; }
+.form-subtitle { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.field input, .field textarea, .field select {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
+  border-radius: var(--r); color: var(--text); font-size: 13px; padding: 10px 12px;
+  outline: none; transition: border-color 0.15s; font-family: inherit; resize: none;
+}
+.field input:focus, .field textarea:focus, .field select:focus { border-color: var(--alive); }
+.field textarea { min-height: 100px; line-height: 1.6; }
+.hint { font-size: 11px; color: var(--faint); line-height: 1.5; }
+select option { background: #07101e; }
+
+.btn-generate {
+  width: 100%; padding: 13px; border-radius: var(--r); border: none; cursor: pointer;
+  background: linear-gradient(135deg, #1a4a70, #0d2a45);
+  color: var(--alive); font-size: 14px; font-weight: 600;
+  border: 1px solid rgba(120,216,255,0.3);
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-generate:hover { opacity: 0.85; }
+.btn-generate:active { transform: scale(0.98); }
+.btn-generate:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.divider { height: 1px; background: var(--border); }
+
+/* Right: results */
+.result-col { flex: 1; padding: 28px; overflow-y: auto; }
+.result-header { font-size: 13px; color: var(--text2); margin-bottom: 20px; }
+.cards { display: flex; gap: 16px; flex-wrap: wrap; }
+
+.card {
+  flex: 1; min-width: 200px; max-width: 280px;
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: 14px; overflow: hidden; display: flex; flex-direction: column;
+}
+.card-label {
+  padding: 10px 14px; font-size: 11px; font-weight: 600;
+  color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.card-image {
+  aspect-ratio: 3/4; background: rgba(255,255,255,0.03);
+  display: flex; align-items: center; justify-content: center;
+  position: relative; overflow: hidden;
+}
+.card-image img { width: 100%; height: 100%; object-fit: cover; }
+.card-placeholder {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--faint); font-size: 12px;
+}
+.card-placeholder .icon { font-size: 28px; opacity: 0.3; }
+
+.card-actions {
+  padding: 10px 12px; display: flex; gap: 8px;
+  border-top: 1px solid var(--border);
+}
+.btn-sm {
+  flex: 1; padding: 7px 10px; border-radius: 7px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+.btn-sm:hover { border-color: var(--alive); color: var(--alive); }
+.btn-sm.primary { background: rgba(120,216,255,0.1); border-color: rgba(120,216,255,0.3); color: var(--alive); }
+.btn-sm.primary:hover { background: rgba(120,216,255,0.18); }
+
+/* Loading ring */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 28px; height: 28px; border: 2px solid rgba(120,216,255,0.2);
+  border-top-color: var(--alive); border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: rgba(7,16,30,0.95); border: 1px solid var(--border2);
+  color: var(--text); font-size: 13px; padding: 10px 20px; border-radius: var(--r);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s; white-space: nowrap; z-index: 999;
+}
+#toast.show { opacity: 1; }
+
+/* Add-to-tree dialog */
+#add-dialog {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+#add-dialog.open { opacity: 1; pointer-events: all; }
+.dialog-box {
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 26px 28px; width: 360px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.dialog-title { font-size: 15px; font-weight: 600; }
+.dialog-field { display: flex; flex-direction: column; gap: 6px; }
+.dialog-field label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.dialog-field input {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text); font-size: 13px; padding: 9px 12px; outline: none;
+}
+.dialog-field input:focus { border-color: var(--alive); }
+.dialog-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" href="/">
+    <div class="logo-mark">B</div>
+    Branchly
+  </a>
+  <span class="nav-title">/ Character Creator</span>
+</nav>
+
+<div class="main">
+  <!-- Form -->
+  <div class="form-col">
+    <div>
+      <div class="form-title">Character Creator</div>
+      <div class="form-subtitle">Describe your character and generate front, side, and back reference images using Google Imagen.</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="field">
+      <label>Character Name</label>
+      <input id="f-name" type="text" placeholder="e.g. Lin Xia"/>
+    </div>
+
+    <div class="field">
+      <label>Age Label</label>
+      <input id="f-age" type="text" placeholder="e.g. Age 28, or Age 25 · Flashback"/>
+    </div>
+
+    <div class="field">
+      <label>Appearance Description</label>
+      <textarea id="f-desc" placeholder="e.g. East Asian woman, shoulder-length straight black hair, oval face, cold pale skin, sharp calm eyes, tailored dark grey business suit"></textarea>
+      <div class="hint">Be specific about face, hair, clothing, and body type. This text is also locked into every video prompt to preserve visual consistency.</div>
+    </div>
+
+    <div class="field">
+      <label>Art Style</label>
+      <select id="f-style">
+        <option value="cinematic realism, film-quality lighting, highly detailed">Cinematic Realism</option>
+        <option value="anime style, clean lines, vibrant colors">Anime</option>
+        <option value="concept art, digital painting, painterly">Concept Art</option>
+        <option value="3D render, Unreal Engine, photorealistic">3D / Photorealistic</option>
+      </select>
+    </div>
+
+    <button class="btn-generate" id="btn-gen" onclick="generate()">✦ Generate 3-Angle Reference</button>
+
+    <div class="hint" style="text-align:center">Each generation uses 3 Imagen API calls (one per angle). Takes ~15–30s.</div>
+  </div>
+
+  <!-- Results -->
+  <div class="result-col">
+    <div class="result-header" id="result-header">Fill in the form and click Generate to create your character reference sheet.</div>
+    <div class="cards" id="cards">
+      <div class="card"><div class="card-label">Front</div><div class="card-image"><div class="card-placeholder"><div class="icon">🎭</div><div>Front view</div></div></div></div>
+      <div class="card"><div class="card-label">Side</div><div class="card-image"><div class="card-placeholder"><div class="icon">🎭</div><div>Side profile</div></div></div></div>
+      <div class="card"><div class="card-label">Back</div><div class="card-image"><div class="card-placeholder"><div class="icon">🎭</div><div>Back view</div></div></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Add to Branchly dialog -->
+<div id="add-dialog">
+  <div class="dialog-box">
+    <div class="dialog-title">Add to Branchly as Character Asset</div>
+    <div class="dialog-field">
+      <label>Asset ID (unique key)</label>
+      <input id="d-assetId" placeholder="e.g. asset_lx_new"/>
+    </div>
+    <div class="dialog-field">
+      <label>Character ID (groups versions of same person)</label>
+      <input id="d-charId" placeholder="e.g. char_lx"/>
+    </div>
+    <div class="dialog-field">
+      <label>Negative Prompt (optional)</label>
+      <input id="d-neg" placeholder="no different face, no extra person"/>
+    </div>
+    <div class="dialog-actions">
+      <button class="btn-sm" onclick="closeAddDialog()">Cancel</button>
+      <button class="btn-sm primary" onclick="confirmAdd()">Copy Asset Definition</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let generatedImages = []; // [{label, dataUrl}]
+let pendingAddImage = null;
+
+async function generate() {
+  const name    = document.getElementById('f-name').value.trim();
+  const age     = document.getElementById('f-age').value.trim();
+  const desc    = document.getElementById('f-desc').value.trim();
+  const style   = document.getElementById('f-style').value;
+
+  if (!desc) { toast('Please enter an appearance description.'); return; }
+
+  document.getElementById('btn-gen').disabled = true;
+  document.getElementById('result-header').textContent = 'Generating 3 reference views… this takes about 20–30 seconds.';
+
+  // Show loading cards
+  const angles = ['Front', 'Side', 'Back'];
+  document.getElementById('cards').innerHTML = angles.map(a => `
+    <div class="card" id="card-${a}">
+      <div class="card-label">${a}</div>
+      <div class="card-image"><div class="card-placeholder"><div class="spinner"></div><div>Generating…</div></div></div>
+    </div>`).join('');
+
+  try {
+    const res = await fetch('/api/generate-character', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, style }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
+
+    generatedImages = data.images;
+    const label = [name, age].filter(Boolean).join(' · ') || 'Character';
+    document.getElementById('result-header').textContent = `✓ Generated: ${label}`;
+
+    document.getElementById('cards').innerHTML = data.images.map(img => `
+      <div class="card">
+        <div class="card-label">${img.label}</div>
+        <div class="card-image"><img src="${img.dataUrl}" alt="${img.label}"/></div>
+        <div class="card-actions">
+          <button class="btn-sm" onclick="downloadImage('${img.label}', '${img.label.toLowerCase()}')">↓ Download</button>
+          <button class="btn-sm primary" onclick="openAddDialog('${img.label}')">+ Add to Branchly</button>
+        </div>
+      </div>`).join('');
+
+  } catch(e) {
+    document.getElementById('result-header').textContent = '✕ Generation failed: ' + e.message;
+    toast('Error: ' + e.message);
+    document.getElementById('cards').innerHTML = angles.map(a => `
+      <div class="card"><div class="card-label">${a}</div>
+      <div class="card-image"><div class="card-placeholder"><div class="icon">✕</div><div>Failed</div></div></div></div>`).join('');
+  }
+
+  document.getElementById('btn-gen').disabled = false;
+}
+
+function downloadImage(label, filename) {
+  const img = generatedImages.find(i => i.label === label);
+  if (!img) return;
+  const a = document.createElement('a');
+  a.href = img.dataUrl;
+  a.download = (document.getElementById('f-name').value.trim() || 'character') + '_' + filename + '.png';
+  a.click();
+}
+
+function openAddDialog(label) {
+  pendingAddImage = generatedImages.find(i => i.label === label);
+  const name = document.getElementById('f-name').value.trim().toLowerCase().replace(/\s+/g,'_') || 'char';
+  const age  = document.getElementById('f-age').value.trim().replace(/\s+/g,'_').replace(/[^a-z0-9_]/gi,'').toLowerCase();
+  document.getElementById('d-assetId').value = `asset_${name}${age ? '_'+age : ''}`;
+  document.getElementById('d-charId').value  = `char_${name}`;
+  document.getElementById('d-neg').value     = 'no different face, no extra person';
+  document.getElementById('add-dialog').classList.add('open');
+}
+
+function closeAddDialog() {
+  document.getElementById('add-dialog').classList.remove('open');
+  pendingAddImage = null;
+}
+
+function confirmAdd() {
+  if (!pendingAddImage) return;
+  const assetId  = document.getElementById('d-assetId').value.trim();
+  const charId   = document.getElementById('d-charId').value.trim();
+  const negPrompt= document.getElementById('d-neg').value.trim();
+  const name     = document.getElementById('f-name').value.trim();
+  const ageLabel = document.getElementById('f-age').value.trim();
+  const desc     = document.getElementById('f-desc').value.trim();
+
+  const snippet = `  ${assetId}: {
+    assetId:'${assetId}', type:'character', characterId:'${charId}',
+    name:'${name}', ageLabel:'${ageLabel}', refName:'${assetId.replace('asset_','')}',
+    refImageUrl: '${assetId}.png',
+    promptPrefix:'${desc}',
+    negativePrompt:'${negPrompt}',
+  },`;
+
+  navigator.clipboard.writeText(snippet).then(() => {
+    toast('✓ Asset definition copied! Paste into ASSETS in storytree_creator.html, then save the image as ' + assetId + '.png');
+    closeAddDialog();
+  }).catch(() => {
+    prompt('Copy this asset definition:', snippet);
+    closeAddDialog();
+  });
+}
+
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+}
+</script>
+</body>
+</html>

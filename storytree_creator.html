@@ -606,6 +606,39 @@ option { background: #07101e; }
 .pay-row.total .val { color: var(--alive); font-size: 15px; font-weight: 700; }
 .pay-actions { display: flex; gap: 10px; justify-content: flex-end; }
 
+/* ── Add character inline panel ─────────────────────────── */
+.add-char-btn {
+  margin-top: 6px; padding: 7px 12px; border-radius: 8px; width: 100%;
+  background: transparent; border: 1px dashed rgba(120,216,255,0.25);
+  color: var(--text2); font-size: 12px; cursor: pointer; text-align: left;
+  transition: border-color 0.15s, color 0.15s;
+}
+.add-char-btn:hover { border-color: var(--alive); color: var(--alive); }
+.add-char-panel {
+  background: rgba(120,216,255,0.04); border: 1px solid rgba(120,216,255,0.15);
+  border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  margin-top: 6px;
+}
+.add-char-panel label { font-size: 11px; color: var(--text2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.add-char-panel input, .add-char-panel textarea, .add-char-panel select {
+  background: rgba(255,255,255,0.05); border: 1px solid var(--border2);
+  border-radius: 7px; color: var(--text); font-size: 12px; padding: 8px 10px;
+  outline: none; font-family: inherit; resize: none; width: 100%;
+}
+.add-char-panel input:focus, .add-char-panel textarea:focus, .add-char-panel select:focus { border-color: var(--alive); }
+.add-char-panel select option { background: #07101e; }
+.add-char-choose { display: flex; gap: 8px; }
+.choose-btn {
+  flex: 1; padding: 10px 8px; border-radius: 8px; border: 1px solid var(--border2);
+  background: transparent; color: var(--text2); font-size: 12px; cursor: pointer;
+  text-align: center; line-height: 1.4; transition: border-color 0.15s, color 0.15s;
+}
+.choose-btn:hover { border-color: var(--alive); color: var(--alive); }
+.add-char-actions { display: flex; gap: 8px; }
+.add-char-actions button { flex: 1; padding: 8px; border-radius: 7px; font-size: 12px; cursor: pointer; border: 1px solid var(--border2); background: transparent; color: var(--text2); }
+.add-char-actions button.primary { background: rgba(120,216,255,0.12); border-color: rgba(120,216,255,0.35); color: var(--alive); }
+.add-char-actions button:hover { opacity: 0.8; }
+
 /* ── Character groups ────────────────────────────────────── */
 .char-groups { display: flex; flex-direction: column; gap: 10px; }
 .char-group { display: flex; flex-direction: column; gap: 6px; }
@@ -1003,6 +1036,12 @@ const S = {
   treeTransform: { x: 80, y: 80, k: 1 },
   treePositions: {},
   newNodeIds: new Set(),
+  addCharStep: null,       // null | 'choose' | 'variant' | 'new' | 'new_loading' | 'new_results'
+  addCharBaseId: null,
+  addCharAge: '', addCharDesc: '',
+  addCharNewName: '', addCharNewAge: '', addCharNewDesc: '', addCharNewStyle: 'cinematic realism, detailed',
+  addCharNewImages: null,  // [{label, dataUrl}]
+  addCharSelectedImg: null,
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -1560,7 +1599,9 @@ function openCreateModal(parentId) {
     if (!seenCharGroups.has(gid)) { seenCharGroups.add(gid); defaultChars.add(c.assetId); }
   });
   S.modalSelectedChars = defaultChars;
-  S.modalSelectedScene=scenes[0]?.assetId||'';
+  S.modalSelectedScene = scenes[0]?.assetId||'';
+  S.addCharStep = null; S.addCharBaseId = chars[0]?.characterId||chars[0]?.assetId||null;
+  S.addCharAge = ''; S.addCharDesc = '';
   renderModal();
   document.getElementById('modal-create').classList.add('open');
 }
@@ -1575,6 +1616,186 @@ function selectCharVersion(characterId, assetId) {
 }
 
 function closeModal() { document.getElementById('modal-create').classList.remove('open'); }
+
+function renderAddCharSection(charGroups) {
+  if (S.addCharStep === null) {
+    return `<button class="add-char-btn" onclick="startAddChar()">+ Add character or age version</button>`;
+  }
+  if (S.addCharStep === 'choose') {
+    return `<div class="add-char-panel">
+      <div style="font-size:12px;color:var(--text2)">What do you want to add?</div>
+      <div class="add-char-choose">
+        <button class="choose-btn" onclick="setAddCharStep('variant')">🕰 New age version<br><span style="font-size:10px;color:var(--faint)">of an existing character</span></button>
+        <button class="choose-btn" onclick="setAddCharStep('new')">✦ Brand new<br><span style="font-size:10px;color:var(--faint)">character from scratch</span></button>
+      </div>
+      <div class="add-char-actions"><button onclick="cancelAddChar()">Cancel</button></div>
+    </div>`;
+  }
+  if (S.addCharStep === 'new') {
+    return `<div class="add-char-panel">
+      <label>Character Name</label>
+      <input id="nc-name" placeholder="e.g. Lin Xia" value="${S.addCharNewName}" oninput="S.addCharNewName=this.value"/>
+      <label>Age Label</label>
+      <input id="nc-age" placeholder="e.g. Age 28" value="${S.addCharNewAge}" oninput="S.addCharNewAge=this.value"/>
+      <label>Appearance Description</label>
+      <textarea id="nc-desc" rows="3" placeholder="e.g. East Asian woman, shoulder-length black hair, sharp eyes, business suit" oninput="S.addCharNewDesc=this.value">${S.addCharNewDesc}</textarea>
+      <label>Art Style</label>
+      <select id="nc-style" onchange="S.addCharNewStyle=this.value">
+        <option value="cinematic realism, detailed" ${S.addCharNewStyle.startsWith('cinematic')?'selected':''}>Cinematic Realism</option>
+        <option value="anime style, clean lines" ${S.addCharNewStyle.startsWith('anime')?'selected':''}>Anime</option>
+        <option value="concept art, digital painting" ${S.addCharNewStyle.startsWith('concept')?'selected':''}>Concept Art</option>
+      </select>
+      <div class="add-char-actions">
+        <button onclick="cancelAddChar()">Cancel</button>
+        <button class="primary" onclick="generateNewCharImages()">✦ Generate Reference</button>
+      </div>
+    </div>`;
+  }
+  if (S.addCharStep === 'new_loading') {
+    return `<div class="add-char-panel">
+      <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:10px">
+        <div class="loading-ring" style="width:16px;height:16px;border-width:2px"></div>
+        Generating 3-angle reference… (~20s)
+      </div>
+    </div>`;
+  }
+  if (S.addCharStep === 'new_results' && S.addCharNewImages) {
+    const imgs = S.addCharNewImages;
+    const imgCards = imgs.map(img => {
+      const sel = S.addCharSelectedImg === img.label;
+      return `<div onclick="S.addCharSelectedImg='${img.label}';renderModal()" style="cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid ${sel?'var(--alive)':'var(--border2)'};flex:1">
+        <div style="font-size:10px;color:var(--text2);padding:4px 8px;background:rgba(0,0,0,0.3)">${img.label}</div>
+        <img src="${img.dataUrl}" style="width:100%;display:block;aspect-ratio:3/4;object-fit:cover"/>
+      </div>`;
+    }).join('');
+    return `<div class="add-char-panel">
+      <div style="font-size:12px;color:var(--text2)">Select the reference image to use:</div>
+      <div style="display:flex;gap:6px">${imgCards}</div>
+      <div class="add-char-actions">
+        <button onclick="setAddCharStep('new')">← Regenerate</button>
+        <button class="primary" onclick="confirmNewChar()" ${!S.addCharSelectedImg?'disabled':''}>Add Character</button>
+      </div>
+    </div>`;
+  }
+  if (S.addCharStep === 'variant') {
+    const existingGroups = charGroups.filter(g => g.versions.length > 0);
+    const charOptions = existingGroups.map(g =>
+      `<option value="${g.gid}" ${S.addCharBaseId===g.gid?'selected':''}>${g.versions[0].name}</option>`
+    ).join('');
+    const baseChar = S.addCharBaseId ? charGroups.find(g=>g.gid===S.addCharBaseId)?.versions[0] : null;
+    return `<div class="add-char-panel">
+      <label>Which character?</label>
+      <select onchange="S.addCharBaseId=this.value;renderModal()">${charOptions}</select>
+      <label>Age label</label>
+      <input id="add-age" placeholder="e.g. Age 31 · 3 Years Later" value="${S.addCharAge}" oninput="S.addCharAge=this.value"/>
+      <label>Appearance notes <span style="color:var(--faint);font-weight:400">(leave blank to inherit original)</span></label>
+      <textarea id="add-desc" rows="3" placeholder="e.g. slightly tired eyes, hair tied up, dark coat" oninput="S.addCharDesc=this.value">${S.addCharDesc}</textarea>
+      <div class="add-char-actions">
+        <button onclick="cancelAddChar()">Cancel</button>
+        <button class="primary" onclick="confirmAddVariant()">Add Version</button>
+      </div>
+    </div>`;
+  }
+  return '';
+}
+
+function startAddChar() { S.addCharStep='choose'; renderModal(); }
+function setAddCharStep(step) {
+  S.addCharStep = step;
+  S.addCharNewImages = null;
+  S.addCharNewName = ''; S.addCharNewAge = ''; S.addCharNewDesc = ''; S.addCharNewStyle = 'cinematic realism, detailed';
+  S.addCharSelectedImg = null;
+  renderModal();
+}
+function cancelAddChar() {
+  S.addCharStep=null; S.addCharBaseId=null; S.addCharAge=''; S.addCharDesc='';
+  S.addCharNewImages=null; S.addCharNewName=''; S.addCharNewAge=''; S.addCharNewDesc=''; S.addCharSelectedImg=null;
+  renderModal();
+}
+
+async function generateNewCharImages() {
+  const desc = S.addCharNewDesc.trim();
+  if (!desc) { toast('Please enter an appearance description.'); return; }
+  S.addCharStep = 'new_loading'; renderModal();
+  try {
+    const res = await fetch('/api/generate-character', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, style: S.addCharNewStyle }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
+    S.addCharNewImages = data.images;
+    S.addCharSelectedImg = data.images[0]?.label || null;
+    S.addCharStep = 'new_results';
+  } catch(e) {
+    S.addCharStep = 'new';
+    toast('Error: ' + e.message);
+  }
+  renderModal();
+}
+
+function confirmNewChar() {
+  const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
+  if (!img) return;
+  const name = S.addCharNewName.trim() || 'New Character';
+  const age  = S.addCharNewAge.trim() || 'Unknown Age';
+  const refName = (name + '_' + age).toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_');
+  const newId = 'asset_' + refName.slice(0, 20);
+  const charId = 'char_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+
+  ASSETS[newId] = {
+    assetId: newId, type: 'character', characterId: charId,
+    name, ageLabel: age, refName,
+    refImageUrl: img.dataUrl,
+    promptPrefix: S.addCharNewDesc.trim(),
+    negativePrompt: 'no different face, no extra person',
+  };
+  const parentNode = S.nodes[S.modalParentId];
+  if (parentNode && !parentNode.ownAssetIds.includes(newId)) parentNode.ownAssetIds.push(newId);
+  S.modalSelectedChars.add(newId);
+  cancelAddChar();
+  toast(`✓ Added: ${name} · ${age}`);
+}
+
+function confirmAddVariant() {
+  const age = S.addCharAge.trim();
+  if (!age) { alert('Please enter an age label.'); return; }
+
+  const baseGroup = Object.values(ASSETS).filter(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
+  const base = baseGroup[0];
+  if (!base) return;
+
+  const newId = 'asset_' + (base.assetId.replace('asset_','')) + '_' + age.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
+  const desc = S.addCharDesc.trim() || base.promptPrefix;
+
+  ASSETS[newId] = {
+    assetId: newId,
+    type: 'character',
+    characterId: S.addCharBaseId,
+    name: base.name,
+    ageLabel: age,
+    refName: newId.replace('asset_',''),
+    pixverseImgId: base.pixverseImgId,
+    refImageUrl: base.refImageUrl,
+    promptPrefix: desc,
+    negativePrompt: base.negativePrompt || 'no different face, no extra person',
+  };
+
+  // Attach to current node so it's immediately available
+  const parentNode = S.nodes[S.modalParentId];
+  if (parentNode && !parentNode.ownAssetIds.includes(newId)) {
+    parentNode.ownAssetIds.push(newId);
+  }
+
+  // Auto-select the new version
+  const assets = getAvailableAssets(S.modalParentId);
+  assets.filter(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId)
+    .forEach(a => S.modalSelectedChars.delete(a.assetId));
+  S.modalSelectedChars.add(newId);
+
+  cancelAddChar();
+  toast(`✓ Added: ${base.name} · ${age}`);
+}
 
 function renderModal() {
   const assets=getAvailableAssets(S.modalParentId);
@@ -1653,6 +1874,7 @@ function renderModal() {
     <div>
       <label class="form-label">Characters · Select Version per Character</label>
       <div class="char-groups">${charGroups.map(charGroupHtml).join('')}${!charGroups.length?'<div style="font-size:12px;color:var(--faint)">No inherited characters</div>':''}</div>
+      ${renderAddCharSection(charGroups)}
     </div>
     <div>
       <label class="form-label">Scene Environment</label>
