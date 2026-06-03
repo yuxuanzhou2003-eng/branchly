@@ -516,12 +516,12 @@ option { background: #07101e; }
 
 /* Preview */
 .preview-player {
-  width: 100%; aspect-ratio: 9/16; max-height: 280px; background: #000;
+  width: 100%; height: 260px; background: #000;
   border-radius: var(--r); overflow: hidden; border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center; position: relative;
+  position: relative;
 }
-.preview-player video { width: 100%; height: 100%; object-fit: cover; }
-.preview-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 20px; }
+.preview-player video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.preview-player .preview-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; }
 .preview-empty .icon { font-size: 30px; opacity: 0.25; }
 .preview-empty p { font-size: 12px; color: var(--faint); }
 .loading-ring {
@@ -553,6 +553,86 @@ option { background: #07101e; }
 .status-dot.alive     { background: var(--alive); box-shadow: 0 0 6px var(--alive-g); }
 .status-dot.endangered{ background: var(--danger); box-shadow: 0 0 6px var(--danger-g); }
 .status-dot.dropped   { background: var(--drop); }
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes likeFlash {
+  0%   { filter: drop-shadow(0 0 0px var(--alive)); }
+  40%  { filter: drop-shadow(0 0 18px var(--alive)) drop-shadow(0 0 36px var(--alive-g)); }
+  100% { filter: drop-shadow(0 0 0px var(--alive)); }
+}
+@keyframes nodeEntrance {
+  0%   { opacity: 0; transform: scale(0.6); }
+  70%  { transform: scale(1.06); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@keyframes endangeredPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+@keyframes edgeDraw {
+  from { stroke-dashoffset: var(--edge-len); }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes unlockReveal {
+  0%   { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+.like-flash { animation: likeFlash 0.65s ease-out forwards; }
+.node-new   { animation: nodeEntrance 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards; }
+.endangered-pulse { animation: endangeredPulse 2.2s ease-in-out infinite; }
+.edge-animate { animation: edgeDraw 0.6s ease-out forwards; }
+
+/* ── Payment dialog ──────────────────────────────────────── */
+#payment-dialog {
+  position: fixed; inset: 0; z-index: 9000;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+#payment-dialog.open { opacity: 1; pointer-events: all; }
+.pay-box {
+  background: var(--panel); border: 1px solid var(--border2);
+  border-radius: 14px; padding: 28px 32px; width: 320px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+.pay-title { font-size: 15px; font-weight: 600; color: var(--text); }
+.pay-split {
+  background: rgba(255,255,255,0.04); border-radius: 8px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+}
+.pay-row { display: flex; justify-content: space-between; font-size: 13px; }
+.pay-row .label { color: var(--faint); }
+.pay-row .val   { color: var(--text); font-weight: 500; }
+.pay-row.total .val { color: var(--alive); font-size: 15px; font-weight: 700; }
+.pay-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ── Character groups ────────────────────────────────────── */
+.char-groups { display: flex; flex-direction: column; gap: 10px; }
+.char-group { display: flex; flex-direction: column; gap: 6px; }
+.char-group-name { font-size: 11px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.char-versions { display: flex; flex-wrap: wrap; gap: 6px; }
+.char-btn .char-name { font-size: 10px; }
+
+/* ── Story context chain ─────────────────────────────────── */
+.story-ctx-chain {
+  background: rgba(120,216,255,0.04); border: 1px solid rgba(120,216,255,0.1);
+  border-radius: 8px; padding: 10px 12px;
+}
+.ctx-chain-text { font-size: 11px; color: var(--faint); line-height: 1.6; }
+.ctx-arrow { color: rgba(120,216,255,0.4); }
+
+/* ── Story path ──────────────────────────────────────────── */
+.story-path {
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  font-size: 11px; color: var(--faint);
+}
+.path-seg { color: var(--text2); }
+.path-sep { color: var(--faint); margin: 0 2px; }
+.path-seg.current { color: var(--alive); }
+.derived-tag {
+  font-size: 11px; color: var(--faint); margin-top: 4px;
+}
+.derived-tag span { color: var(--text2); }
 </style>
 </head>
 <body>
@@ -710,6 +790,18 @@ option { background: #07101e; }
 
 <div id="toast"></div>
 
+<!-- Payment dialog -->
+<div id="payment-dialog">
+  <div class="pay-box">
+    <div class="pay-title">🔓 Unlock This Branch</div>
+    <div class="pay-split" id="pay-split-body"></div>
+    <div class="pay-actions">
+      <button class="btn sm" onclick="closePaymentDialog()">Cancel</button>
+      <button class="btn sm primary" id="pay-confirm-btn">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ──────────────────────────────────────────────────────────
    CONFIG
@@ -728,24 +820,48 @@ const CONFIG = {
    ASSETS
    ────────────────────────────────────────────────────────── */
 const ASSETS = {
+  // ── Lin Xia · all versions ──────────────────────────────
   asset_lx: {
-    assetId:'asset_lx', type:'character', name:'Lin Xia', refName:'linxia',
-    pixverseImgId: 875295974,
-    refImageUrl: 'lin-xia.png',
+    assetId:'asset_lx', type:'character', characterId:'char_lx',
+    name:'Lin Xia', ageLabel:'Age 28', refName:'linxia_28',
+    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
     promptPrefix:'A 28-year-old East Asian woman, shoulder-length straight black hair, oval face, cold pale skin, sharp calm eyes, tailored dark grey business suit',
     negativePrompt:'no changing outfit, no different face, no extra person',
   },
+  asset_lx_25: {
+    assetId:'asset_lx_25', type:'character', characterId:'char_lx',
+    name:'Lin Xia', ageLabel:'Age 25 · Flashback', refName:'linxia_25',
+    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
+    promptPrefix:'A 25-year-old East Asian woman, softer features, longer hair, slight innocence still in her eyes, light casual outfit',
+    negativePrompt:'no different face, no extra person, no business suit',
+  },
+  asset_lx_31: {
+    assetId:'asset_lx_31', type:'character', characterId:'char_lx',
+    name:'Lin Xia', ageLabel:'Age 31 · 3 Years Later', refName:'linxia_31',
+    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
+    promptPrefix:'A 31-year-old East Asian woman, slightly tired eyes, more authoritative presence, sharp dark coat, hair tied up',
+    negativePrompt:'no different face, no extra person',
+  },
+  // ── Chen Yi · all versions ───────────────────────────────
   asset_cy: {
-    assetId:'asset_cy', type:'character', name:'Chen Yi', refName:'chenyi',
-    pixverseImgId: 875295975,
-    refImageUrl: 'chen-yi.png',
+    assetId:'asset_cy', type:'character', characterId:'char_cy',
+    name:'Chen Yi', ageLabel:'Age 32', refName:'chenyi_32',
+    pixverseImgId: 875295975, refImageUrl: 'chen-yi.png',
     promptPrefix:'A 32-year-old East Asian man, neat short hair, sharp navy suit, arrogant and restrained',
     negativePrompt:'no different face, no extra person, no casual clothes',
   },
+  asset_cy_28: {
+    assetId:'asset_cy_28', type:'character', characterId:'char_cy',
+    name:'Chen Yi', ageLabel:'Age 28 · Flashback', refName:'chenyi_28',
+    pixverseImgId: 875295975, refImageUrl: 'chen-yi.png',
+    promptPrefix:'A 28-year-old East Asian man, slightly younger, less guarded expression, casual blazer, still ambitious',
+    negativePrompt:'no different face, no extra person',
+  },
+  // ── Mystery Man ──────────────────────────────────────────
   asset_meteor: {
-    assetId:'asset_meteor', type:'character', name:'Mystery Man', refName:'mysteryman',
-    pixverseImgId: 875295976,
-    refImageUrl: 'mystery-man.png',
+    assetId:'asset_meteor', type:'character', characterId:'char_meteor',
+    name:'Mystery Man', ageLabel:'Age 45', refName:'mysteryman_45',
+    pixverseImgId: 875295976, refImageUrl: 'mystery-man.png',
     promptPrefix:'A 45-year-old East Asian man, tired eyes, dark coat, restrained and suspicious',
     negativePrompt:'no young face, no extra person',
   },
@@ -780,7 +896,7 @@ const INITIAL_NODES = {
     likes:520, impressions:12000, paidUnlocks:0,
     isProtected:false, status:'alive',
     videoUrl:'base.mov',
-    ownAssetIds:['asset_lx','asset_cy','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
+    ownAssetIds:['asset_lx','asset_lx_25','asset_lx_31','asset_cy','asset_cy_28','asset_meteor','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
   },
   node_a: {
     nodeId:'node_a', parentId:'node_root', title:'The Coldwave Arrives', storyId:'story_001',
@@ -798,9 +914,9 @@ const INITIAL_NODES = {
     synopsis:'The opposite choice: she turns all her rage into flame and lets the entire family burn.',
     prompt:'The heroine announces the divorce. The camera is subtly handheld, pushing the emotion to its peak.',
     authorId:'user_b', authorName:'Anonymous Creator #42', duration:20,
-    ageDays:9, isFreeWindow:true, unlockPrice:1.9,
+    ageDays:35, isFreeWindow:false, unlockPrice:1.9,
     likes:87, impressions:1200, paidUnlocks:7,
-    isProtected:true, status:'alive',
+    isProtected:false, status:'alive',
     videoUrl:'branch2.mov',
     ownAssetIds:[], thumbUrl:'',
   },
@@ -886,6 +1002,7 @@ const S = {
   modalPayloadVisible: false,
   treeTransform: { x: 80, y: 80, k: 1 },
   treePositions: {},
+  newNodeIds: new Set(),
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -919,6 +1036,26 @@ const S = {
 /* ──────────────────────────────────────────────────────────
    HELPERS
    ────────────────────────────────────────────────────────── */
+function getStoryContext(nodeId) {
+  const synopses = [];
+  let cur = S.nodes[nodeId];
+  while (cur && synopses.length < 3) {
+    if (cur.synopsis) synopses.unshift(cur.synopsis);
+    cur = cur.parentId ? S.nodes[cur.parentId] : null;
+  }
+  return synopses.join(' → ');
+}
+
+function getStoryPath(nodeId) {
+  const path = [];
+  let cur = S.nodes[nodeId];
+  while (cur) {
+    path.unshift({ id: cur.nodeId, title: cur.title });
+    cur = cur.parentId ? S.nodes[cur.parentId] : null;
+  }
+  return path;
+}
+
 function getAvailableAssets(nodeId) {
   const ids = new Set();
   let cur = S.nodes[nodeId];
@@ -1133,7 +1270,7 @@ function drawTree() {
       const col = n.status === 'dropped'     ? 'rgba(75,85,99,0.3)'
                 : n.nodeId === 'node_locked' ? 'rgba(240,192,64,0.18)'
                 : 'rgba(120,216,255,0.25)';
-      return `<path class="edge" d="M${sx},${sy} C${cx1},${sy} ${cx2},${ty} ${tx},${ty}" stroke="${col}"/>`;
+      return `<path class="edge" data-id="${n.nodeId}" d="M${sx},${sy} C${cx1},${sy} ${cx2},${ty} ${tx},${ty}" stroke="${col}"/>`;
     }).join('');
 
   // Node cards via foreignObject
@@ -1143,40 +1280,49 @@ function drawTree() {
       const {x:nx, y:ny} = pos[n.nodeId];
       const col      = nodeColor(n);
       const dim      = n.nodeId === 'node_root' ? ROOT : CARD;
-      const isDropped = n.status === 'dropped';
-      const isLocked  = n.nodeId === 'node_locked';
-      const sel       = S.selectedNodeId === n.nodeId;
+      const isDropped  = n.status === 'dropped';
+      const isLocked   = n.nodeId === 'node_locked';
+      const isPaid     = !isDropped && !isLocked && !n.isFreeWindow && !S.unlockedNodes.has(n.nodeId);
+      const isRestricted = isLocked || isPaid;
+      const sel        = S.selectedNodeId === n.nodeId;
 
       // Video thumbnail source
       const vidSrc = n.videoUrl
         ? n.videoUrl
         : isDropped ? '' : 'base.mov#t=4';
 
-      const thumbFilter = isDropped ? 'filter:brightness(0.2)'
-                        : isLocked  ? 'filter:blur(3px) brightness(0.3)'
+      const thumbFilter = isDropped    ? 'filter:brightness(0.2)'
+                        : isRestricted ? 'filter:blur(4px) brightness(0.35)'
                         : '';
 
       const vidHtml = vidSrc
         ? `<video src="${vidSrc}" muted playsinline preload="metadata"
              style="width:100%;height:100%;object-fit:cover;${thumbFilter}"
-             onmouseenter="if(!${isDropped}&&!${isLocked})this.play()"
+             onmouseenter="if(!${isDropped}&&!${isRestricted})this.play()"
              onmouseleave="this.pause();this.currentTime=0"></video>`
         : `<div style="width:100%;height:100%;background:rgba(30,30,40,0.8)"></div>`;
 
       const overlay = isDropped
         ? `<div class="nc-overlay"><span style="font-size:20px">💀</span><span>Dropped</span></div>`
+        : isPaid
+        ? `<div class="nc-overlay"><span style="font-size:16px">🔒</span><span style="color:var(--hot);font-size:11px">¥${n.unlockPrice}</span></div>`
         : isLocked
         ? `<div class="nc-overlay"><span style="font-size:20px">🔒</span><span style="color:var(--hot)">¥${n.unlockPrice}</span></div>`
         : '';
 
+      const hotColor = 'rgba(240,192,64,1)';
       const border = sel
-        ? `border:2px solid ${col.fill};box-shadow:0 0 20px ${col.fill}55,0 0 40px ${col.fill}22`
+        ? `border:2px solid ${isPaid ? hotColor : col.fill};box-shadow:0 0 20px ${isPaid ? hotColor+'88' : col.fill+'55'},0 0 40px ${col.fill}22`
+        : isPaid
+        ? `border:1.5px solid ${hotColor}90;box-shadow:0 0 10px ${hotColor}30`
         : `border:1.5px solid ${col.fill}70;box-shadow:0 0 14px ${col.fill}28`;
 
-      const likesColor = isDropped ? 'var(--drop)' : isLocked ? 'var(--hot)' : col.fill;
-      const likesText  = isDropped ? '✕ Drop' : isLocked ? 'Locked' : '♥ ' + n.likes;
+      const likesColor = isDropped ? 'var(--drop)' : isRestricted ? 'var(--hot)' : col.fill;
+      const likesText  = isDropped ? '✕ Drop' : isLocked ? 'Locked' : isPaid ? '🔒 Paid' : '♥ ' + n.likes;
 
-      return `<g class="node-g" data-id="${n.nodeId}" onclick="openPanel('${n.nodeId}')" transform="translate(${nx},${ny})">
+      const endangeredClass = n.status === 'endangered' ? ' endangered-pulse' : '';
+      const newClass = S.newNodeIds && S.newNodeIds.has(n.nodeId) ? ' node-new' : '';
+      return `<g class="node-g${endangeredClass}${newClass}" data-id="${n.nodeId}" onclick="openPanel('${n.nodeId}')" transform="translate(${nx},${ny})">
         <foreignObject x="${-dim.hw}" y="${-dim.h/2}" width="${dim.w}" height="${dim.h}">
           <div xmlns="http://www.w3.org/1999/xhtml" class="nc" style="${border}">
             <div class="nc-thumb" style="height:${dim.thumbH}px">
@@ -1267,6 +1413,11 @@ function openPanel(nodeId) {
   const statusMap={alive:'Active',endangered:'Endangered',dropped:'Dropped'};
   const statusColMap={alive:'var(--alive)',endangered:'var(--danger)',dropped:'var(--drop)'};
 
+  const storyPath = getStoryPath(nodeId);
+  const pathHtml = storyPath.map((seg, i) =>
+    `<span class="path-seg${i===storyPath.length-1?' current':''}">${seg.title}</span>${i<storyPath.length-1?'<span class="path-sep">→</span>':''}`
+  ).join('');
+
   document.getElementById('panel-header').innerHTML = `
     <button class="panel-close" onclick="closePanel()">×</button>
     <div class="panel-status" style="color:${statusColMap[node.status]}">
@@ -1274,7 +1425,9 @@ function openPanel(nodeId) {
       ${statusMap[node.status]} · Day ${node.ageDays}
     </div>
     <div class="panel-title">${node.title}</div>
-    <div class="panel-meta">${node.authorName} · ${node.isFreeWindow?'Free now':'Paid ¥'+node.unlockPrice}</div>`;
+    <div class="panel-meta">${node.authorName} · ${node.isFreeWindow?'Free now':'Paid ¥'+node.unlockPrice}</div>
+    ${node.derivedFrom?`<div class="derived-tag">Derived from <span>@${node.derivedFrom}</span></div>`:''}
+    <div class="story-path" style="margin-top:6px">${pathHtml}</div>`;
 
   let videoHtml='';
   if (nodeId === 'node_locked') {
@@ -1344,14 +1497,48 @@ function likeNode(nodeId) {
   const was=S.likedNodes.has(nodeId);
   if (was){S.likedNodes.delete(nodeId);node.likes--;}else{S.likedNodes.add(nodeId);node.likes++;}
   openPanel(nodeId); drawTree();
+  if (!was) {
+    const ng = document.querySelector(`.node-g[data-id="${nodeId}"]`);
+    if (ng) { ng.classList.remove('like-flash'); void ng.offsetWidth; ng.classList.add('like-flash'); }
+  }
   toast(was?'Like removed':'♥ Liked. Node popularity updated');
 }
 
 function unlockNode(nodeId) {
-  const node=S.nodes[nodeId];
-  S.unlockedNodes.add(nodeId);
-  toast(`¥${node.unlockPrice}  paid (mock): creator ¥1.5, platform ¥0.4`);
-  openPanel(nodeId);
+  const node = S.nodes[nodeId];
+  const price = node.unlockPrice || 1.9;
+  const creator = (price * 0.79).toFixed(1);
+  const platform = (price * 0.21).toFixed(1);
+  document.getElementById('pay-split-body').innerHTML = `
+    <div class="pay-row total"><span class="label">Total</span><span class="val">¥${price}</span></div>
+    <div class="pay-row"><span class="label">Creator earns</span><span class="val" style="color:var(--alive)">¥${creator}</span></div>
+    <div class="pay-row"><span class="label">Platform fee</span><span class="val">¥${platform}</span></div>`;
+  const btn = document.getElementById('pay-confirm-btn');
+  btn.onclick = () => { confirmUnlock(nodeId); };
+  document.getElementById('payment-dialog').classList.add('open');
+}
+
+function confirmUnlock(nodeId) {
+  closePaymentDialog();
+  // Animate existing overlay BEFORE marking unlocked (overlay is still in DOM)
+  const overlay = document.querySelector('#node-panel .lock-overlay');
+  if (overlay) {
+    overlay.style.transition = 'opacity 0.65s ease';
+    overlay.style.opacity = '0';
+    setTimeout(() => {
+      S.unlockedNodes.add(nodeId);
+      openPanel(nodeId);
+      toast('🔓 Unlocked! Creator received their share.');
+    }, 650);
+  } else {
+    S.unlockedNodes.add(nodeId);
+    openPanel(nodeId);
+    toast('🔓 Unlocked! Creator received their share.');
+  }
+}
+
+function closePaymentDialog() {
+  document.getElementById('payment-dialog').classList.remove('open');
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -1365,10 +1552,26 @@ function openCreateModal(parentId) {
   const assets=getAvailableAssets(parentId);
   const chars=assets.filter(a=>a.type==='character');
   const scenes=assets.filter(a=>a.type==='scene');
-  S.modalSelectedChars=new Set(chars.slice(0,2).map(a=>a.assetId));
+  // Default: select the first (oldest/canonical) version of each character
+  const defaultChars = new Set();
+  const seenCharGroups = new Set();
+  chars.forEach(c => {
+    const gid = c.characterId || c.assetId;
+    if (!seenCharGroups.has(gid)) { seenCharGroups.add(gid); defaultChars.add(c.assetId); }
+  });
+  S.modalSelectedChars = defaultChars;
   S.modalSelectedScene=scenes[0]?.assetId||'';
   renderModal();
   document.getElementById('modal-create').classList.add('open');
+}
+
+function selectCharVersion(characterId, assetId) {
+  // Remove all versions of this character, then select the chosen one
+  const assets = getAvailableAssets(S.modalParentId);
+  assets.filter(a => a.type==='character' && (a.characterId||a.assetId)===characterId)
+    .forEach(a => S.modalSelectedChars.delete(a.assetId));
+  S.modalSelectedChars.add(assetId);
+  renderModal();
 }
 
 function closeModal() { document.getElementById('modal-create').classList.remove('open'); }
@@ -1385,17 +1588,33 @@ function renderModal() {
     el.classList.toggle('active', el.dataset.phase===S.modalPhase);
   });
 
-  // Left panel
-  function charBtn(c) {
-    const sel=S.modalSelectedChars.has(c.assetId);
-    const photoHtml=c.refImageUrl
-      ? `<img src="${c.refImageUrl}" alt="${c.name}" onerror="this.style.display='none'">`
-      : `<span style="font-size:20px">👤</span>`;
-    return `<button class="char-btn${sel?' selected':''}" onclick="toggleChar('${c.assetId}')">
-      <div class="char-photo">${photoHtml}</div>
-      <div class="char-name">${c.name}</div>
-    </button>`;
+  // Group characters by characterId
+  const charGroups = [];
+  const seenGroups = new Map();
+  chars.forEach(c => {
+    const gid = c.characterId || c.assetId;
+    if (!seenGroups.has(gid)) { seenGroups.set(gid, []); charGroups.push({ gid, versions: seenGroups.get(gid) }); }
+    seenGroups.get(gid).push(c);
+  });
+
+  function charGroupHtml(g) {
+    const firstName = g.versions[0].name;
+    const versions = g.versions.map(c => {
+      const sel = S.modalSelectedChars.has(c.assetId);
+      const photo = c.refImageUrl
+        ? `<img src="${c.refImageUrl}" alt="${c.name}" onerror="this.style.display='none'">`
+        : `<span style="font-size:18px">👤</span>`;
+      return `<button class="char-btn${sel?' selected':''}" onclick="selectCharVersion('${c.characterId||c.assetId}','${c.assetId}')">
+        <div class="char-photo">${photo}</div>
+        <div class="char-name">${c.ageLabel||c.name}</div>
+      </button>`;
+    }).join('');
+    return `<div class="char-group">
+      <div class="char-group-name">${firstName}</div>
+      <div class="char-versions">${versions}</div>
+    </div>`;
   }
+
   function sceneBtn(s) {
     const sel=S.modalSelectedScene===s.assetId;
     const photoHtml=s.refImageUrl
@@ -1407,11 +1626,18 @@ function renderModal() {
     </button>`;
   }
 
+  // Story context chain — ancestors only (parent itself is shown in "Continuing From")
+  const ancestorCtx = getStoryContext(parent.parentId);
+  const storyCtxHtml = ancestorCtx
+    ? `<div class="story-ctx-chain"><div class="ctx-label" style="margin-bottom:6px">📖 Story so far</div><div class="ctx-chain-text">${ancestorCtx.replace(/ → /g,'<span class="ctx-arrow"> → </span>')}</div></div>`
+    : '';
+
   document.getElementById('modal-left').innerHTML = `
     <div class="parent-ctx">
       <div class="ctx-label">Continuing From</div>
       <p>${parent.synopsis}</p>
     </div>
+    ${storyCtxHtml}
     <div>
       <label class="form-label">What happens next?</label>
       <textarea class="prompt-area" id="modal-prompt" rows="4"
@@ -1421,12 +1647,12 @@ function renderModal() {
           <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
           <path d="M4 5V3.5a2 2 0 014 0V5" stroke="currentColor" stroke-width="1.2"/>
         </svg>
-        Character identity prefixes are locked. The system automatically assembles Google video references to preserve visual lineage.
+        Character identity prefixes are locked. The system automatically assembles video references to preserve visual lineage.
       </div>
     </div>
     <div>
-      <label class="form-label">Characters · Inherited References</label>
-      <div class="char-grid">${chars.map(charBtn).join('')}${!chars.length?'<div style="font-size:12px;color:var(--faint)">No inherited characters</div>':''}</div>
+      <label class="form-label">Characters · Select Version per Character</label>
+      <div class="char-groups">${charGroups.map(charGroupHtml).join('')}${!charGroups.length?'<div style="font-size:12px;color:var(--faint)">No inherited characters</div>':''}</div>
     </div>
     <div>
       <label class="form-label">Scene Environment</label>
@@ -1524,12 +1750,18 @@ function buildPayload() {
   const lockedPrefix=chars.map(c=>c.promptPrefix).filter(Boolean).join('. ');
   const negPrompt=chars.map(c=>c.negativePrompt).filter(Boolean)
     .concat(['no distorted face','no flicker','no sudden identity change']).join(', ');
+  const storyContext = getStoryContext(S.modalParentId);
   return {
     _demo: CONFIG.DEMO_MODE?'DEMO_MODE: uses preset result':'LIVE: calls Google Omni video generation via /api/generate',
     provider:'google',
     would_call:'/api/generate',
     image_references:refs,
-    prompt:[style?.promptPrefix,lockedPrefix,userPrompt].filter(Boolean).join('. '),
+    prompt:[
+      style?.promptPrefix,
+      lockedPrefix,
+      storyContext ? 'Story so far: ' + storyContext : null,
+      userPrompt,
+    ].filter(Boolean).join('. '),
     negative_prompt:negPrompt,
     model,duration,quality:CONFIG.DEFAULT_QUALITY,
     aspect_ratio:'9:16',motion_mode:'normal',camera_movement:camera,
@@ -1594,14 +1826,14 @@ async function realGenerate(payload) {
 
 function publishBranch() {
   if (!S.modalResult) return;
-  if (!confirm('Add this branch to the story tree?')) return;
   const newId=uid();
   const parent=S.nodes[S.modalParentId];
+  const fullPrompt = buildPayload().prompt;
   S.nodes[newId]={
     nodeId:newId, parentId:S.modalParentId, storyId:'story_001',
     title:S.modalResult.title||'New Sprout · '+S.modalPrompt.slice(0,10),
     synopsis:S.modalResult.synopsis||S.modalPrompt,
-    prompt:S.modalPrompt,
+    prompt:fullPrompt,
     authorId:'user_me', authorName:'You',
     derivedFrom:parent.authorName,
     videoUrl:S.modalResult.videoUrl||'',
@@ -1609,10 +1841,25 @@ function publishBranch() {
     likes:0, impressions:0, paidUnlocks:0,
     isProtected:true, status:'alive', ownAssetIds:[], thumbUrl:'',
   };
+  if (!S.newNodeIds) S.newNodeIds = new Set();
+  S.newNodeIds.add(newId);
   closeModal();
   S.treePositions=computeLayout('node_root');
   drawTree();
-  setTimeout(()=>openPanel(newId), 200);
+  // Animate the new edge drawing in
+  requestAnimationFrame(() => {
+    const edgePath = document.querySelector(`.edge[data-id="${newId}"]`);
+    if (edgePath) {
+      const len = edgePath.getTotalLength();
+      edgePath.style.setProperty('--edge-len', len);
+      edgePath.style.strokeDasharray = len;
+      edgePath.style.strokeDashoffset = len;
+      edgePath.classList.add('edge-animate');
+    }
+    // Clear new-node flag after animation so it doesn't replay on redraw
+    setTimeout(() => { if (S.newNodeIds) S.newNodeIds.delete(newId); }, 600);
+  });
+  setTimeout(()=>openPanel(newId), 300);
   toast('🌿 New branch added to the story tree!');
 }
 

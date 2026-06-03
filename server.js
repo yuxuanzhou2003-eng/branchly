@@ -830,6 +830,40 @@ function getServiceAccountConfig() {
   return null;
 }
 
+async function getGoogleAccessToken() {
+  const now = Math.floor(Date.now() / 1000);
+  if (gcsTokenCache && gcsTokenCache.exp > now + 60) return gcsTokenCache.token;
+
+  const sa = getServiceAccountConfig();
+  if (!sa) throw new Error("No service account config available.");
+
+  const header = Buffer.from(JSON.stringify({ alg: "RS256", typ: "JWT" })).toString("base64url");
+  const payload = Buffer.from(JSON.stringify({
+    iss: sa.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  })).toString("base64url");
+
+  const sign = createSign("RSA-SHA256");
+  sign.update(`${header}.${payload}`);
+  const sig = sign.sign(sa.private_key, "base64url");
+
+  const jwt = `${header}.${payload}.${sig}`;
+  const resp = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${jwt}`,
+  });
+
+  const data = await resp.json();
+  if (!data.access_token) throw new Error(`Google OAuth2 token exchange failed: ${JSON.stringify(data)}`);
+
+  gcsTokenCache = { token: data.access_token, exp: now + (data.expires_in || 3600) };
+  return gcsTokenCache.token;
+}
+
 function base64UrlJson(value) {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
