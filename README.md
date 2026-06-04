@@ -22,7 +22,7 @@ The economic loop:
 
 ## Features
 
-### Story Tree
+### Story Universe
 - Visual branching tree with pan, zoom, and animated node connections
 - Three health states: **Active** (glowing), **Endangered** (pulsing), **Dropped** (grey)
 - Node cards show live like counts, paywall status, and video previews on hover
@@ -58,7 +58,7 @@ The economic loop:
 ## Architecture
 
 ```
-Browser (storytree_creator.html)
+Browser (branchly.html)
   │  User actions: browse tree, like, unlock, generate
   │
   ▼
@@ -101,7 +101,7 @@ Google Cloud
 
 ```
 branchly/
-├── storytree_creator.html    # Main app — story tree, node panel, generation modal
+├── branchly.html    # Main app — branch universe, node panel, generation modal
 ├── character_creator.html    # Standalone character reference sheet generator
 ├── server.js                 # Backend — video generation proxy, GCS, asset API
 ├── package.json
@@ -140,7 +140,7 @@ npm start
 # → http://localhost:5173
 ```
 
-To use pre-recorded content without real generation, set `DEMO_MODE: true` in `storytree_creator.html`.
+To use pre-recorded content without real generation, set `DEMO_MODE: true` in `branchly.html`.
 
 ---
 

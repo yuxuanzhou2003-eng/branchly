@@ -332,7 +332,7 @@ function confirmAdd() {
   },`;
 
   navigator.clipboard.writeText(snippet).then(() => {
-    toast('✓ Asset definition copied! Paste into ASSETS in storytree_creator.html, then save the image as ' + assetId + '.png');
+    toast('✓ Asset definition copied! Paste into ASSETS in branchly.html, then save the image as ' + assetId + '.png');
     closeAddDialog();
   }).catch(() => {
     prompt('Copy this asset definition:', snippet);

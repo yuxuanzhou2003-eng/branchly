@@ -40,7 +40,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`StoryTree video workflow: http://localhost:${port}`);
+  console.log(`Branchly: http://localhost:${port}`);
   console.log(
     getVideoProvider() === "google"
       ? `Video generation provider: Google Vertex AI (${getGoogleVideoModel()}).`
@@ -1167,7 +1167,7 @@ function resolveStoragePath(key) {
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://localhost:${port}`);
   const pathname = decodeURIComponent(url.pathname);
-  const requested = pathname === "/" ? "storytree_creator.html" : pathname.slice(1);
+  const requested = pathname === "/" ? "branchly.html" : pathname.slice(1);
   const absolute = resolveSafePath(requested);
 
   let stat;

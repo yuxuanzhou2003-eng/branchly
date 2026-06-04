@@ -712,7 +712,7 @@ option { background: #07101e; }
         <div class="hero-title">Coldwave Era · Rebirth</div>
         <div class="hero-desc">The moment she tore up that check in public, the real story began. Every branch on this tree is another possible ending.</div>
         <div class="hero-actions">
-          <button class="btn primary" onclick="navigate('tree')">Enter Story Tree →</button>
+          <button class="btn primary" onclick="navigate('tree')">Enter branch universe →</button>
           <button class="btn" onclick="navigate('tree')">View All Branches</button>
         </div>
       </div>
@@ -1237,7 +1237,7 @@ function navigate(page, nodeId) {
     back.style.display = 'none';
   } else {
     back.style.display = 'flex';
-    backLabel.textContent = page === 'tree' ? 'Home' : 'Story Tree';
+    backLabel.textContent = page === 'tree' ? 'Home' : 'branch universe';
   }
   if (page === 'home') renderHome();
   else if (page === 'tree') renderTree();
@@ -2257,7 +2257,7 @@ function publishBranch() {
     setTimeout(() => { if (S.newNodeIds) S.newNodeIds.delete(newId); }, 600);
   });
   setTimeout(()=>openPanel(newId), 300);
-  toast('🌿 New branch added to the story tree!');
+  toast('🌿 New branch added to the branch universe!');
 }
 
 /* ──────────────────────────────────────────────────────────
