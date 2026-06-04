@@ -1966,8 +1966,22 @@ function buildPayload() {
   const model=document.getElementById('modal-model')?.value||'v6';
   const preset=PRESET_RESULTS[S.modalResultIndex];
   const refs=[
-    ...chars.map(c=>({type:'subject',img_id:c.pixverseImgId,ref_name:c.refName})),
-    ...(scene?[{type:'background',img_id:scene.pixverseImgId,ref_name:scene.refName}]:[]),
+    ...chars.map(c=>({
+      type:'subject',
+      referenceType:'asset',
+      img_id:c.pixverseImgId,
+      ref_name:c.refName,
+      refImageUrl:c.refImageUrl,
+      gcsUri:c.gcsUri||'',
+    })),
+    ...(scene?[{
+      type:'background',
+      referenceType:'asset',
+      img_id:scene.pixverseImgId,
+      ref_name:scene.refName,
+      refImageUrl:scene.refImageUrl,
+      gcsUri:scene.gcsUri||'',
+    }]:[]),
   ].slice(0,3);
   const lockedPrefix=chars.map(c=>c.promptPrefix).filter(Boolean).join('. ');
   const negPrompt=chars.map(c=>c.negativePrompt).filter(Boolean)

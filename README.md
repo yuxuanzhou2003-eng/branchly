@@ -144,6 +144,21 @@ POST /api/generate
 GET /api/status/{operationName}
 ```
 
+For Veo / Google Omni image-to-video guidance, send up to three entries in
+`payload.image_references`. The server converts each reference into the Vertex
+AI `referenceImages` format with base64 image bytes and MIME type. Supported
+inputs are:
+
+```json
+{
+  "image_references": [
+    { "refImageUrl": "lin-xia.png", "type": "subject" },
+    { "dataUrl": "data:image/png;base64,...", "type": "subject" },
+    { "gcsUri": "gs://your-branchly-bucket/branchly/assets/asset/image.png" }
+  ]
+}
+```
+
 ## GCS CORS
 
 The repository includes `gcs-cors.json` for allowing browser access from:

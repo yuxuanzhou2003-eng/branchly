@@ -371,7 +371,7 @@ function normalizeFusionPayload(payload) {
 
 async function googleGenerateVideo(payload) {
   requireGoogleVideoConfig();
-  const body = buildGoogleVideoRequest(payload);
+  const body = await buildGoogleVideoRequest(payload);
   const response = await fetch(googleVideoEndpoint("predictLongRunning", payload.model), {
     method: "POST",
     headers: {
@@ -398,7 +398,7 @@ async function googleFetchVideoOperation(operationName) {
   return readGoogleJson(response, "Google Veo operation poll");
 }
 
-function buildGoogleVideoRequest(payload) {
+async function buildGoogleVideoRequest(payload) {
   const prompt = payload.prompt || "";
   const parameters = {
     aspectRatio: payload.aspect_ratio || payload.aspectRatio || "9:16",
@@ -420,7 +420,7 @@ function buildGoogleVideoRequest(payload) {
   if (storageUri) parameters.storageUri = storageUri;
 
   const instance = { prompt };
-  const referenceImages = buildGoogleReferenceImages(payload.image_references || []);
+  const referenceImages = await buildGoogleReferenceImages(payload.image_references || []);
   if (referenceImages.length) instance.referenceImages = referenceImages;
 
   return {
@@ -429,22 +429,100 @@ function buildGoogleVideoRequest(payload) {
   };
 }
 
-function buildGoogleReferenceImages(references) {
-  return references
-    .map((reference) => {
-      const bytesBase64Encoded = reference.bytesBase64Encoded || reference.bytes_base64_encoded;
-      if (!bytesBase64Encoded) return null;
+async function buildGoogleReferenceImages(references) {
+  const normalized = [];
 
-      return {
-        image: {
-          bytesBase64Encoded,
-          mimeType: reference.mimeType || reference.mime_type || "image/png",
-        },
-        referenceType: reference.referenceType || "asset",
-      };
-    })
-    .filter(Boolean)
-    .slice(0, 3);
+  for (const reference of references.slice(0, 3)) {
+    const image = await resolveGoogleReferenceImage(reference);
+    if (!image) continue;
+
+    normalized.push({
+      image,
+      referenceType: normalizeGoogleReferenceType(reference),
+    });
+  }
+
+  return normalized;
+}
+
+async function resolveGoogleReferenceImage(reference) {
+  if (!reference || typeof reference !== "object") return null;
+
+  const bytesBase64Encoded = reference.bytesBase64Encoded || reference.bytes_base64_encoded;
+  if (bytesBase64Encoded) {
+    return {
+      bytesBase64Encoded,
+      mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type),
+    };
+  }
+
+  const source =
+    reference.dataUrl ||
+    reference.data_url ||
+    reference.refImageUrl ||
+    reference.ref_image_url ||
+    reference.imageUrl ||
+    reference.image_url ||
+    reference.url ||
+    reference.path ||
+    "";
+
+  if (typeof source === "string" && source.startsWith("data:")) {
+    return imageFromDataUrl(source, reference.mimeType || reference.mime_type);
+  }
+
+  const gcsUri = reference.gcsUri || reference.gcs_uri || (typeof source === "string" && source.startsWith("gs://") ? source : "");
+  if (gcsUri) {
+    const objectName = objectNameFromGcsUri(gcsUri);
+    if (!objectName) return null;
+    const bytes = await gcsDownloadObjectBytes(objectName);
+    return {
+      bytesBase64Encoded: bytes.toString("base64"),
+      mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type || mimeForPath(objectName)),
+    };
+  }
+
+  if (!source || typeof source !== "string") return null;
+
+  if (/^https?:\/\//i.test(source)) {
+    const response = await fetch(source);
+    if (!response.ok) {
+      throw new Error(`Reference image download failed (${response.status}): ${source}`);
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    return {
+      bytesBase64Encoded: bytes.toString("base64"),
+      mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type || response.headers.get("content-type")),
+    };
+  }
+
+  const localPath = source.replace(/^\/+/, "");
+  const absolute = resolveSafePath(localPath);
+  const bytes = await fs.promises.readFile(absolute);
+  return {
+    bytesBase64Encoded: bytes.toString("base64"),
+    mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type || mimeForPath(absolute)),
+  };
+}
+
+function imageFromDataUrl(dataUrl, fallbackMimeType = "") {
+  const match = dataUrl.match(/^data:([^;,]+)?(?:;[^,]*)?,(.+)$/);
+  if (!match) return null;
+
+  return {
+    bytesBase64Encoded: match[2],
+    mimeType: normalizeImageMimeType(fallbackMimeType || match[1]),
+  };
+}
+
+function normalizeGoogleReferenceType(reference) {
+  return "asset";
+}
+
+function normalizeImageMimeType(mimeType) {
+  const clean = String(mimeType || "").split(";")[0].trim().toLowerCase();
+  if (clean === "image/jpg") return "image/jpeg";
+  return ["image/jpeg", "image/png"].includes(clean) ? clean : "image/png";
 }
 
 function normalizeGoogleDuration(duration) {
@@ -796,6 +874,22 @@ async function gcsDownloadObject(objectName) {
 
   await ensureGcsOk(response, `download ${objectName}`);
   return response.text();
+}
+
+async function gcsDownloadObjectBytes(objectName) {
+  const bucket = encodeURIComponent(process.env.GCS_BUCKET);
+  const name = encodeURIComponent(objectName);
+  const response = await fetch(
+    `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media`,
+    {
+      headers: {
+        Authorization: `Bearer ${await getGcsAccessToken()}`,
+      },
+    },
+  );
+
+  await ensureGcsOk(response, `download ${objectName}`);
+  return Buffer.from(await response.arrayBuffer());
 }
 
 async function ensureGcsOk(response, action) {
