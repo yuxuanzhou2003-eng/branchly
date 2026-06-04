@@ -2,6 +2,7 @@ const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
 const { createSign, randomUUID } = require("node:crypto");
+const { Readable } = require("node:stream");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 5173);
@@ -81,6 +82,11 @@ async function routeApi(req, res) {
         assetDescriptor: "assets/{assetId}.json",
       },
     });
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/api/media") {
+    await streamGcsMedia(req, res, url);
     return;
   }
 
@@ -260,8 +266,16 @@ async function routeApi(req, res) {
 
     if (getVideoProvider() === "google" || videoId.startsWith("projects/")) {
       const raw = await googleFetchVideoOperation(videoId);
-      const videos = raw.response?.videos || [];
-      const firstVideoUrl = videos[0]?.gcsUri ? gcsUriToHttpsUrl(videos[0].gcsUri) : "";
+      const response = raw.response || {};
+      const videos = response.videos || [];
+      const filteredCount = Number(response.raiMediaFilteredCount || 0);
+      const filteredReasons = Array.isArray(response.raiMediaFilteredReasons)
+        ? response.raiMediaFilteredReasons
+        : [];
+      const filterMessage = filteredCount > 0
+        ? filteredReasons.join(" ") || `${filteredCount} generated video(s) were filtered by Vertex AI safety policy.`
+        : "";
+      const firstVideoUrl = videos[0]?.gcsUri ? playableGcsMediaUrl(videos[0].gcsUri) : "";
       sendJson(res, 200, {
         provider: "google",
         result: {
@@ -269,8 +283,11 @@ async function routeApi(req, res) {
           videos,
           video_url: firstVideoUrl,
           gcs_uri: videos[0]?.gcsUri || "",
-          status: raw.done ? 1 : 5,
+          status: filterMessage ? 3 : raw.done ? 1 : 5,
           operation_name: raw.name,
+          filtered_count: filteredCount,
+          filtered_reasons: filteredReasons,
+          error: filterMessage,
         },
         raw,
       });
@@ -371,8 +388,9 @@ function normalizeFusionPayload(payload) {
 
 async function googleGenerateVideo(payload) {
   requireGoogleVideoConfig();
-  const body = await buildGoogleVideoRequest(payload);
-  const response = await fetch(googleVideoEndpoint("predictLongRunning", payload.model), {
+  const model = getGoogleVideoModel(payload.model);
+  const body = await buildGoogleVideoRequest(payload, model);
+  const response = await fetch(googleVideoEndpoint("predictLongRunning", model), {
     method: "POST",
     headers: {
       "Content-Type": "application/json; charset=utf-8",
@@ -381,7 +399,9 @@ async function googleGenerateVideo(payload) {
     body: JSON.stringify(body),
   });
 
-  return readGoogleJson(response, "Google Veo generation request");
+  const raw = await readGoogleJson(response, "Google Veo generation request");
+  raw.model = model;
+  return raw;
 }
 
 async function googleFetchVideoOperation(operationName) {
@@ -398,8 +418,8 @@ async function googleFetchVideoOperation(operationName) {
   return readGoogleJson(response, "Google Veo operation poll");
 }
 
-async function buildGoogleVideoRequest(payload) {
-  const prompt = payload.prompt || "";
+async function buildGoogleVideoRequest(payload, model) {
+  const prompt = makeGoogleVeoSafePrompt(payload.prompt || "");
   const parameters = {
     aspectRatio: payload.aspect_ratio || payload.aspectRatio || "9:16",
     durationSeconds: normalizeGoogleDuration(payload.duration),
@@ -421,7 +441,13 @@ async function buildGoogleVideoRequest(payload) {
 
   const instance = { prompt };
   const referenceImages = await buildGoogleReferenceImages(payload.image_references || []);
-  if (referenceImages.length) instance.referenceImages = referenceImages;
+  if (referenceImages.length) {
+    if (usesGoogleImageInput(model)) {
+      instance.image = referenceImages[0].image;
+    } else {
+      instance.referenceImages = referenceImages;
+    }
+  }
 
   return {
     instances: [instance],
@@ -522,12 +548,40 @@ function normalizeGoogleReferenceType(reference) {
 function normalizeImageMimeType(mimeType) {
   const clean = String(mimeType || "").split(";")[0].trim().toLowerCase();
   if (clean === "image/jpg") return "image/jpeg";
-  return ["image/jpeg", "image/png"].includes(clean) ? clean : "image/png";
+  return ["image/jpeg", "image/png", "image/webp"].includes(clean) ? clean : "image/png";
 }
 
 function normalizeGoogleDuration(duration) {
   const value = Number(duration || process.env.GOOGLE_VIDEO_DURATION || 8);
   return [4, 6, 8].includes(value) ? value : 8;
+}
+
+function makeGoogleVeoSafePrompt(prompt) {
+  const replacements = [
+    [/\brevenge\b/gi, "emotional confrontation"],
+    [/\brage\b/gi, "intense emotion"],
+    [/\bburn\b/gi, "fall apart emotionally"],
+    [/\bblade\b/gi, "sharp decision"],
+    [/\bdeath\b/gi, "past crisis"],
+    [/\bdead\b/gi, "gone"],
+    [/\bkill(?:ed|ing)?\b/gi, "defeat emotionally"],
+    [/\bblood\b/gi, "dramatic tension"],
+    [/\bviolent\b/gi, "high-stakes"],
+    [/\bviolence\b/gi, "conflict"],
+    [/\babyss\b/gi, "uncertainty"],
+    [/\bdrag\b/gi, "bring"],
+    [/\bjudgment\b/gi, "truth and accountability"],
+  ];
+  const safePrompt = replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), prompt);
+  return [
+    "Safe PG-13 cinematic short-drama scene with no violence, no injury, no weapons, no blood, no self-harm, and no explicit threat.",
+    safePrompt,
+    "Focus on facial expressions, dialogue tension, camera movement, lighting, and emotional restraint.",
+  ].join(" ");
+}
+
+function usesGoogleImageInput(model) {
+  return String(model || "").startsWith("veo-3.");
 }
 
 function normalizeGoogleResolution(resolution) {
@@ -574,7 +628,7 @@ function getGoogleCloudProject() {
 }
 
 function getGoogleVideoModel(modelId = "") {
-  return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-fast-generate-preview";
+  return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-fast-generate-001";
 }
 
 function getVideoProvider() {
@@ -892,6 +946,68 @@ async function gcsDownloadObjectBytes(objectName) {
   return Buffer.from(await response.arrayBuffer());
 }
 
+async function streamGcsMedia(req, res, url) {
+  const objectName = mediaObjectNameFromUrl(url);
+  const bucket = encodeURIComponent(process.env.GCS_BUCKET);
+  const name = encodeURIComponent(objectName);
+  const headers = {
+    Authorization: `Bearer ${await getGcsAccessToken()}`,
+  };
+  const range = normalizeRangeHeader(req.headers.range);
+  if (range) headers.Range = range;
+
+  const response = await fetch(
+    `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media`,
+    { headers },
+  );
+
+  if (!response.ok && response.status !== 206) {
+    await ensureGcsOk(response, `stream ${objectName}`);
+  }
+
+  const outputHeaders = {
+    "Content-Type": response.headers.get("content-type") || mimeForPath(objectName),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "private, max-age=300",
+  };
+  copyHeader(response, outputHeaders, "content-length", "Content-Length");
+  copyHeader(response, outputHeaders, "content-range", "Content-Range");
+
+  res.writeHead(response.status === 206 ? 206 : 200, outputHeaders);
+  if (req.method === "HEAD" || !response.body) {
+    res.end();
+    return;
+  }
+
+  Readable.fromWeb(response.body).pipe(res);
+}
+
+function mediaObjectNameFromUrl(url) {
+  const objectName = String(url.searchParams.get("object") || objectNameFromGcsUri(url.searchParams.get("gcsUri") || "")).trim();
+  if (!objectName) throw new Error("Missing media object.");
+
+  const gcsUri = url.searchParams.get("gcsUri") || "";
+  if (gcsUri) {
+    const bucket = bucketNameFromGcsUri(gcsUri);
+    if (bucket && bucket !== process.env.GCS_BUCKET) {
+      throw new Error("Media object is outside the configured GCS bucket.");
+    }
+  }
+
+  return objectName.replace(/^\/+/, "");
+}
+
+function normalizeRangeHeader(range) {
+  if (!range) return "";
+  const value = String(range).trim();
+  return /^bytes=\d*-\d*$/.test(value) ? value : "";
+}
+
+function copyHeader(response, headers, sourceName, targetName) {
+  const value = response.headers.get(sourceName);
+  if (value) headers[targetName] = value;
+}
+
 async function ensureGcsOk(response, action) {
   if (response.ok) return;
   const text = await response.text();
@@ -1010,17 +1126,16 @@ function objectNameFromGcsUri(uri) {
   return slashIndex === -1 ? "" : withoutScheme.slice(slashIndex + 1);
 }
 
-function gcsUriToHttpsUrl(uri) {
-  if (!uri || !uri.startsWith("gs://")) return uri || "";
+function bucketNameFromGcsUri(uri) {
+  if (!uri || !uri.startsWith("gs://")) return "";
   const withoutScheme = uri.slice("gs://".length);
   const slashIndex = withoutScheme.indexOf("/");
-  if (slashIndex === -1) return "";
-  const bucket = withoutScheme.slice(0, slashIndex);
-  const objectName = withoutScheme.slice(slashIndex + 1);
-  return `https://storage.googleapis.com/${encodeURIComponent(bucket)}/${objectName
-    .split("/")
-    .map(encodeURIComponent)
-    .join("/")}`;
+  return slashIndex === -1 ? withoutScheme : withoutScheme.slice(0, slashIndex);
+}
+
+function playableGcsMediaUrl(uri) {
+  if (!uri || !uri.startsWith("gs://")) return uri || "";
+  return `/api/media?gcsUri=${encodeURIComponent(uri)}`;
 }
 
 function resolveStoragePath(key) {

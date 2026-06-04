@@ -11,7 +11,7 @@ The core idea is simple: every story checkpoint can inherit visual resources fro
 - Opens a branch-creation modal where users write the next scene.
 - Automatically resolves inherited character, scene, and style assets through the parent chain.
 - Builds Google video generation payloads with inherited visual references, locked character prompts, negative prompts, model, duration, aspect ratio, output storage, and seed.
-- Supports a demo generation mode with preset results for fast hackathon demos.
+- Calls live Google Omni / Veo generation by default, with an optional demo path still available in code for fast walkthroughs.
 - Provides backend endpoints for Google video generation, checkpoint manifests, asset descriptors, and Google Cloud Storage-backed persistence.
 
 ## Main Screens
@@ -70,7 +70,7 @@ Copy the example env file:
 cp .env.example .env
 ```
 
-For demo-only local use, you can run without Google video credentials. The app will use preset generation results.
+The main prototype calls the local server for real Google Omni / Veo generation by default. For demo-only local use, set `CONFIG.DEMO_MODE` to `true` in `storytree_creator.html`.
 
 To enable real Google Omni / Veo generation, set:
 
@@ -78,7 +78,7 @@ To enable real Google Omni / Veo generation, set:
 VIDEO_GENERATION_PROVIDER=google
 GOOGLE_CLOUD_PROJECT=your_google_cloud_project_id
 GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_VIDEO_MODEL=veo-3.1-fast-generate-preview
+GOOGLE_VIDEO_MODEL=veo-3.1-fast-generate-001
 GOOGLE_VIDEO_RESOLUTION=720p
 GOOGLE_API_KEY=your_google_api_key_here
 ```
@@ -184,8 +184,8 @@ gcloud storage buckets update gs://your-branchly-bucket --cors-file=gcs-cors.jso
 - `gcs-cors.json` - CORS config for the deployed Vercel domain.
 - `storyboard-*.md` - source storyboards and planning material.
 
-## Demo Notes
+## Generation Notes
 
-The main prototype defaults to demo mode. Demo generation waits briefly, returns a preset branch result, and lets the user attach it to the tree. This is intentional for live demos where real video generation latency would interrupt the product walkthrough.
+The main prototype defaults to live Google generation with `veo-3.1-fast-generate-001`, the faster Veo 3.1 model. When visual assets are selected, the server sends the first selected asset as the Veo image-to-video input image.
 
 For a production path, the app should move the single-file prototype into modules, persist story state through the checkpoint API, and route all real Google generation through `server.js` so credentials stay private.
