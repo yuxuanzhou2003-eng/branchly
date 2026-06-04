@@ -1,6 +1,16 @@
 {
+  "name": "branchly",
+  "version": "1.0.0",
+  "description": "A branching short-drama platform powered by Google Veo 3.1. Users explore a living story tree, unlock episodes, like branches, and generate new continuations with AI video generation.",
+  "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["ai", "video-generation", "short-drama", "story-tree", "google-veo", "interactive-narrative"],
+  "license": "MIT",
   "dependencies": {}
 }

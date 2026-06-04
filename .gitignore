@@ -25,3 +25,6 @@ storytree/
 # OS
 .DS_Store
 Thumbs.db
+
+# Old demo video files
+Original video/

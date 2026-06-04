@@ -701,7 +701,7 @@ option { background: #07101e; }
     <!-- Hero Banner -->
     <div class="hero">
       <div class="hero-bg">
-        <img src="coldwave-rebirth-poster.png" alt="" onerror="this.style.display='none'">
+        <img src="assets/coldwave-rebirth-poster.png" alt="" onerror="this.style.display='none'">
       </div>
       <div class="hero-overlay"></div>
       <div class="hero-content">
@@ -857,21 +857,21 @@ const ASSETS = {
   asset_lx: {
     assetId:'asset_lx', type:'character', characterId:'char_lx',
     name:'Lin Xia', ageLabel:'Age 28', refName:'linxia_28',
-    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
+    pixverseImgId: 875295974, refImageUrl: 'assets/lin-xia.png',
     promptPrefix:'A 28-year-old East Asian woman, shoulder-length straight black hair, oval face, cold pale skin, sharp calm eyes, tailored dark grey business suit',
     negativePrompt:'no changing outfit, no different face, no extra person',
   },
   asset_lx_25: {
     assetId:'asset_lx_25', type:'character', characterId:'char_lx',
     name:'Lin Xia', ageLabel:'Age 25 · Flashback', refName:'linxia_25',
-    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
+    pixverseImgId: 875295974, refImageUrl: 'assets/lin-xia.png',
     promptPrefix:'A 25-year-old East Asian woman, softer features, longer hair, slight innocence still in her eyes, light casual outfit',
     negativePrompt:'no different face, no extra person, no business suit',
   },
   asset_lx_31: {
     assetId:'asset_lx_31', type:'character', characterId:'char_lx',
     name:'Lin Xia', ageLabel:'Age 31 · 3 Years Later', refName:'linxia_31',
-    pixverseImgId: 875295974, refImageUrl: 'lin-xia.png',
+    pixverseImgId: 875295974, refImageUrl: 'assets/lin-xia.png',
     promptPrefix:'A 31-year-old East Asian woman, slightly tired eyes, more authoritative presence, sharp dark coat, hair tied up',
     negativePrompt:'no different face, no extra person',
   },
@@ -879,14 +879,14 @@ const ASSETS = {
   asset_cy: {
     assetId:'asset_cy', type:'character', characterId:'char_cy',
     name:'Chen Yi', ageLabel:'Age 32', refName:'chenyi_32',
-    pixverseImgId: 875295975, refImageUrl: 'chen-yi.png',
+    pixverseImgId: 875295975, refImageUrl: 'assets/chen-yi.png',
     promptPrefix:'A 32-year-old East Asian man, neat short hair, sharp navy suit, arrogant and restrained',
     negativePrompt:'no different face, no extra person, no casual clothes',
   },
   asset_cy_28: {
     assetId:'asset_cy_28', type:'character', characterId:'char_cy',
     name:'Chen Yi', ageLabel:'Age 28 · Flashback', refName:'chenyi_28',
-    pixverseImgId: 875295975, refImageUrl: 'chen-yi.png',
+    pixverseImgId: 875295975, refImageUrl: 'assets/chen-yi.png',
     promptPrefix:'A 28-year-old East Asian man, slightly younger, less guarded expression, casual blazer, still ambitious',
     negativePrompt:'no different face, no extra person',
   },
@@ -894,17 +894,17 @@ const ASSETS = {
   asset_meteor: {
     assetId:'asset_meteor', type:'character', characterId:'char_meteor',
     name:'Mystery Man', ageLabel:'Age 45', refName:'mysteryman_45',
-    pixverseImgId: 875295976, refImageUrl: 'mystery-man.png',
+    pixverseImgId: 875295976, refImageUrl: 'assets/mystery-man.png',
     promptPrefix:'A 45-year-old East Asian man, tired eyes, dark coat, restrained and suspicious',
     negativePrompt:'no young face, no extra person',
   },
   asset_scene_meeting: {
     assetId:'asset_scene_meeting', type:'scene', name:'Glass Conference Room', refName:'meetingroom',
-    pixverseImgId: 20001, refImageUrl: 'glass-conference-room.png',
+    pixverseImgId: 20001, refImageUrl: 'assets/glass-conference-room.png',
   },
   asset_scene_blizzard: {
     assetId:'asset_scene_blizzard', type:'scene', name:'Blizzard Street', refName:'blizzard',
-    pixverseImgId: 20002, refImageUrl: 'blizzard-street.png',
+    pixverseImgId: 20002, refImageUrl: 'assets/blizzard-street.png',
   },
   asset_scene_lab: {
     assetId:'asset_scene_lab', type:'scene', name:'Dim Laboratory', refName:'lab',
@@ -919,61 +919,136 @@ const ASSETS = {
 /* ──────────────────────────────────────────────────────────
    MOCK NODES
    ────────────────────────────────────────────────────────── */
+function vp(p) { return p.split('/').map((s,i)=>i===0?s:encodeURIComponent(s)).join('/'); }
+
 const INITIAL_NODES = {
+  // ── Root ────────────────────────────────────────────────
   node_root: {
-    nodeId:'node_root', parentId:null, title:'Master Cut · Rebirth', storyId:'story_001',
+    nodeId:'node_root', parentId:null, title:'Reborn', storyId:'story_001',
     synopsis:'She tore up the check in public and the room erupted. This is where the whole story begins.',
-    prompt:'[Character bible] Lin Xia is calm and forceful; Chen Yi is a wealthy family heir.\nIn the banquet hall, Lin Xia tears up the check in public. Everyone freezes as the camera slowly pushes in.',
+    prompt:'Lin Xia stands in the banquet hall and tears up the check. The camera slowly pushes in as the crowd freezes.',
     authorId:'platform', authorName:'Platform', duration:35,
     ageDays:60, isFreeWindow:true, unlockPrice:0,
     likes:520, impressions:12000, paidUnlocks:0,
     isProtected:false, status:'alive',
-    videoUrl:'base.mov',
+    videoUrl: vp('videos/Reborn.mp4'),
     ownAssetIds:['asset_lx','asset_lx_25','asset_lx_31','asset_cy','asset_cy_28','asset_meteor','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
   },
-  node_a: {
-    nodeId:'node_a', parentId:'node_root', title:'The Coldwave Arrives', storyId:'story_001',
-    synopsis:'Winter is coming, and she chooses to stand at the center of the storm: a decision no one saw coming.',
-    prompt:'Lin Xia turns with a cold smile. The lights carve a cold golden edge as the crowd steps back.',
-    authorId:'user_a', authorName:'Anonymous Creator #12', duration:22,
-    ageDays:12, isFreeWindow:true, unlockPrice:1.9,
-    likes:134, impressions:980, paidUnlocks:21,
-    isProtected:true, status:'alive',
-    videoUrl:'branch1.mov',
-    ownAssetIds:[], thumbUrl:'',
-  },
-  node_b: {
-    nodeId:'node_b', parentId:'node_root', title:'Heatwave Strikes', storyId:'story_001',
-    synopsis:'The opposite choice: she turns all her rage into flame and lets the entire family burn.',
-    prompt:'The heroine announces the divorce. The camera is subtly handheld, pushing the emotion to its peak.',
-    authorId:'user_b', authorName:'Anonymous Creator #42', duration:20,
-    ageDays:35, isFreeWindow:false, unlockPrice:1.9,
-    likes:87, impressions:1200, paidUnlocks:7,
+
+  // ── Branch A · 公司 (Company) ────────────────────────────
+  node_co_1: {
+    nodeId:'node_co_1', parentId:'node_root', title:"Boss's Message", storyId:'story_001',
+    synopsis:"A cryptic message from the CEO arrives at 3am. Something is being set in motion.",
+    prompt:"Close on Lin Xia's phone screen — a message from the CEO she hasn't heard from in years.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:10, isFreeWindow:true, unlockPrice:1.9,
+    likes:188, impressions:2100, paidUnlocks:0,
     isProtected:false, status:'alive',
-    videoUrl:'branch2.mov',
-    ownAssetIds:[], thumbUrl:'',
+    videoUrl: vp("videos/公司/1 Boss's message.mp4"), ownAssetIds:[],
   },
-  node_c: {
-    nodeId:'node_c', parentId:'node_root', title:'Vanishing into the Abyss', storyId:'story_001',
-    synopsis:'She chooses to disappear in silence, but this path leads into an abyss no one understands.',
-    prompt:'The heroine walks away, stops at the doorway, hears whispers, and slowly looks back.',
-    authorId:'user_c', authorName:'Anonymous Creator #07', duration:18,
-    ageDays:50, isFreeWindow:false, unlockPrice:1.9,
-    likes:3, impressions:900, paidUnlocks:0,
-    isProtected:false, status:'dropped',
-    videoUrl:'', thumbUrl:'',
-    ownAssetIds:[],
-  },
-  node_locked: {
-    nodeId:'node_locked', parentId:'node_a', title:'Locked', storyId:'story_001',
-    synopsis:'This branch is not open yet. Be the first to unlock it.',
-    prompt:'',
-    authorId:'platform', authorName:'Platform', duration:0,
-    ageDays:0, isFreeWindow:false, unlockPrice:3.9,
-    likes:0, impressions:0, paidUnlocks:0,
+  node_co_2: {
+    nodeId:'node_co_2', parentId:'node_co_1', title:'Gossip from Colleague', storyId:'story_001',
+    synopsis:"A whispered rumor in the break room reveals someone has been watching her every move.",
+    prompt:"Two colleagues speak in hushed tones by the coffee machine. Lin Xia listens from the corridor.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:143, impressions:980, paidUnlocks:34,
     isProtected:false, status:'alive',
-    videoUrl:'', thumbUrl:'',
-    ownAssetIds:[],
+    videoUrl: vp('videos/公司/2 Gossip from collegue.mp4'), ownAssetIds:[],
+  },
+  node_co_3: {
+    nodeId:'node_co_3', parentId:'node_co_2', title:'A Weird Mission', storyId:'story_001',
+    synopsis:"She is handed an assignment no one else would take — a mission that changes everything.",
+    prompt:"The CEO slides a sealed envelope across the desk. Lin Xia opens it and her expression shifts.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:97, impressions:620, paidUnlocks:28,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/公司/3. A wierd mission.mp4'), ownAssetIds:[],
+  },
+
+  // ── Branch B · 童话 (Fairy Tale) ─────────────────────────
+  node_ft_1: {
+    nodeId:'node_ft_1', parentId:'node_root', title:'Into the Frozen World', storyId:'story_001',
+    synopsis:"She steps through a door that shouldn't exist and finds herself in a world of endless winter.",
+    prompt:"Lin Xia walks through a glowing doorway. On the other side — a vast frozen tundra under a violet sky.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:6, isFreeWindow:true, unlockPrice:1.9,
+    likes:231, impressions:3400, paidUnlocks:0,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童话/1. Into the frozen world.mp4'), ownAssetIds:[],
+  },
+  node_ft_2: {
+    nodeId:'node_ft_2', parentId:'node_ft_1', title:'Frozen Palace', storyId:'story_001',
+    synopsis:"The palace of ice holds secrets buried for centuries — and someone wants her to find them.",
+    prompt:"Wide shot of a crystalline palace. Lin Xia approaches the gate as ice statues watch silently.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:178, impressions:1800, paidUnlocks:52,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童话/2. Frozen palace.mp4'), ownAssetIds:[],
+  },
+  node_ft_3: {
+    nodeId:'node_ft_3', parentId:'node_ft_2', title:'Death Threat', storyId:'story_001',
+    synopsis:"A voice in the frozen dark speaks her name. This world does not welcome intruders.",
+    prompt:"Darkness. A whisper. Lin Xia turns — a figure made of ice stands inches from her face.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:134, impressions:1100, paidUnlocks:41,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童话/3. Death threat.mp4'), ownAssetIds:[],
+  },
+  node_ft_4: {
+    nodeId:'node_ft_4', parentId:'node_ft_3', title:'Being Chased', storyId:'story_001',
+    synopsis:"She runs. The ice cracks beneath her feet. Whatever is behind her is not human.",
+    prompt:"Lin Xia sprints across a frozen lake. Behind her the ice shatters. Something massive pursues.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:89, impressions:740, paidUnlocks:29,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童话/4. Being chased.mp4'), ownAssetIds:[],
+  },
+
+  // ── Branch C · 童年 (Childhood) ──────────────────────────
+  node_ch_1: {
+    nodeId:'node_ch_1', parentId:'node_root', title:'8 Years Old Again', storyId:'story_001',
+    synopsis:"She wakes up and she is 8 years old. Everything she built — gone. The clock has reset.",
+    prompt:"Lin Xia looks at her small hands. She is in a childhood bedroom. Calendar reads 1997.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:4, isFreeWindow:true, unlockPrice:1.9,
+    likes:312, impressions:4200, paidUnlocks:0,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童年/1. 8 years old again.mp4'), ownAssetIds:[],
+  },
+  node_ch_2: {
+    nodeId:'node_ch_2', parentId:'node_ch_1', title:'The Boy', storyId:'story_001',
+    synopsis:"A boy she has never met looks at her like he knows exactly who she is — and who she will become.",
+    prompt:"A young boy stands at the school gate staring at Lin Xia. She knows she has never seen him before.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:267, impressions:2900, paidUnlocks:88,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童年/2. the boy.mp4'), ownAssetIds:[],
+  },
+  node_ch_3: {
+    nodeId:'node_ch_3', parentId:'node_ch_2', title:'Snow in Summer', storyId:'story_001',
+    synopsis:"The seasons don't make sense here. The snow falls in July and the flowers never die.",
+    prompt:"A summer street. Snowflakes fall. Children stare upward. Lin Xia catches one in her palm.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:198, impressions:1600, paidUnlocks:61,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童年/3. Snow in summer.mp4'), ownAssetIds:[],
+  },
+  node_ch_4: {
+    nodeId:'node_ch_4', parentId:'node_ch_3', title:'Painting', storyId:'story_001',
+    synopsis:"She finds a painting of herself she could never have painted. Someone knew. Someone always knew.",
+    prompt:"An attic. Lin Xia pulls a dusty sheet from a canvas — her own face, aged, stares back at her.",
+    authorId:'platform', authorName:'Platform', duration:8,
+    ageDays:38, isFreeWindow:false, unlockPrice:1.9,
+    likes:154, impressions:1200, paidUnlocks:47,
+    isProtected:false, status:'alive',
+    videoUrl: vp('videos/童年/4. Painting.mp4'), ownAssetIds:[],
   },
 };
 
@@ -982,27 +1057,27 @@ const DRAMAS = [
   {
     id:'story_001', title:'Coldwave Era · Rebirth',
     tagline:'After tearing up that check in public, her comeback has only begun',
-    poster:'coldwave-rebirth-poster.png', status:'alive', featured:true,
-    nodeIds:['node_a','node_b','node_c','node_locked'],
+    poster:'assets/coldwave-rebirth-poster.png', status:'alive', featured:true,
+    nodeIds:['node_co_1','node_ft_1','node_ch_1'],
   },
   {
     id:'story_002', title:'Queen of the Dark Night',
     tagline:'Deep violet night, lavish old money. After half a life in hiding, she overturns everything in one night',
-    poster:'queen-of-the-dark-night.png', status:'coming', featured:false,
+    poster:'assets/queen-of-the-dark-night.png', status:'coming', featured:false,
     gradientFrom:'#1a0428', gradientTo:'#0a0318',
     nodeIds:[],
   },
   {
     id:'story_003', title:'Abyssal Chessboard',
     tagline:'All the love, hatred, and revenge are moves in a meticulously designed game',
-    poster:'abyssal-chessboard.png', status:'coming', featured:false,
+    poster:'assets/abyssal-chessboard.png', status:'coming', featured:false,
     gradientFrom:'#040c18', gradientTo:'#0a1428',
     nodeIds:[],
   },
   {
     id:'story_004', title:'Roses and Thorns',
     tagline:'She turns love into a blade and cuts open the family lie',
-    poster:'roses-and-thorns.png', status:'coming', featured:false,
+    poster:'assets/roses-and-thorns.png', status:'coming', featured:false,
     gradientFrom:'#1a0408', gradientTo:'#280a0a',
     nodeIds:[],
   },
@@ -1020,7 +1095,7 @@ const PRESET_RESULTS = [
 const S = {
   nodes: JSON.parse(JSON.stringify(INITIAL_NODES)),
   tokenBalance: 100,
-  unlockedNodes: new Set(['node_root']),
+  unlockedNodes: new Set(['node_root','node_co_1','node_ft_1','node_ch_1']),
   likedNodes: new Set(),
   currentPage: 'home',
   selectedNodeId: null,
@@ -1093,6 +1168,16 @@ function getStoryPath(nodeId) {
     cur = cur.parentId ? S.nodes[cur.parentId] : null;
   }
   return path;
+}
+
+// A node is accessible only if its parent has been watched (free or unlocked)
+function isNodeAccessible(nodeId) {
+  const node = S.nodes[nodeId];
+  if (!node || !node.parentId) return true;
+  const parent = S.nodes[node.parentId];
+  if (!parent) return true;
+  const parentWatched = parent.isFreeWindow || S.unlockedNodes.has(node.parentId);
+  return parentWatched && isNodeAccessible(node.parentId);
 }
 
 function getAvailableAssets(nodeId) {
@@ -1331,10 +1416,12 @@ function drawTree() {
       const {x:nx, y:ny} = pos[n.nodeId];
       const col      = nodeColor(n);
       const dim      = n.nodeId === 'node_root' ? ROOT : CARD;
-      const isDropped  = n.status === 'dropped';
-      const isLocked   = n.nodeId === 'node_locked';
-      const isPaid     = !isDropped && !isLocked && !n.isFreeWindow && !S.unlockedNodes.has(n.nodeId);
-      const isRestricted = isLocked || isPaid;
+      const isDropped     = n.status === 'dropped';
+      const isLocked      = n.nodeId === 'node_locked';
+      const isAccessible  = isNodeAccessible(n.nodeId);
+      const isPaid        = !isDropped && !isLocked && isAccessible && !n.isFreeWindow && !S.unlockedNodes.has(n.nodeId);
+      const isPrereqLocked = !isDropped && !isLocked && !isAccessible;
+      const isRestricted  = isLocked || isPaid || isPrereqLocked;
       const sel        = S.selectedNodeId === n.nodeId;
 
       // Video thumbnail source
@@ -1355,6 +1442,8 @@ function drawTree() {
 
       const overlay = isDropped
         ? `<div class="nc-overlay"><span style="font-size:20px">💀</span><span>Dropped</span></div>`
+        : isPrereqLocked
+        ? `<div class="nc-overlay"><span style="font-size:14px">⛔</span><span style="font-size:10px;color:var(--faint)">Watch previous</span></div>`
         : isPaid
         ? `<div class="nc-overlay"><span style="font-size:16px">🔒</span><span style="color:var(--hot);font-size:11px">¥${n.unlockPrice}</span></div>`
         : isLocked
@@ -1362,14 +1451,17 @@ function drawTree() {
         : '';
 
       const hotColor = 'rgba(240,192,64,1)';
+      const prereqColor = 'rgba(100,100,120,1)';
       const border = sel
-        ? `border:2px solid ${isPaid ? hotColor : col.fill};box-shadow:0 0 20px ${isPaid ? hotColor+'88' : col.fill+'55'},0 0 40px ${col.fill}22`
+        ? `border:2px solid ${isPaid ? hotColor : isPrereqLocked ? prereqColor : col.fill};box-shadow:0 0 20px ${col.fill}55`
         : isPaid
         ? `border:1.5px solid ${hotColor}90;box-shadow:0 0 10px ${hotColor}30`
+        : isPrereqLocked
+        ? `border:1.5px solid ${prereqColor}50`
         : `border:1.5px solid ${col.fill}70;box-shadow:0 0 14px ${col.fill}28`;
 
-      const likesColor = isDropped ? 'var(--drop)' : isRestricted ? 'var(--hot)' : col.fill;
-      const likesText  = isDropped ? '✕ Drop' : isLocked ? 'Locked' : isPaid ? '🔒 Paid' : '♥ ' + n.likes;
+      const likesColor = isDropped ? 'var(--drop)' : isPrereqLocked ? 'var(--faint)' : isRestricted ? 'var(--hot)' : col.fill;
+      const likesText  = isDropped ? '✕ Drop' : isLocked ? 'Locked' : isPrereqLocked ? '⛔ Locked' : isPaid ? '🔒 Paid' : '♥ ' + n.likes;
 
       const endangeredClass = n.status === 'endangered' ? ' endangered-pulse' : '';
       const newClass = S.newNodeIds && S.newNodeIds.has(n.nodeId) ? ' node-new' : '';
@@ -1455,7 +1547,8 @@ function openPanel(nodeId) {
   drawTree();
 
   const col=nodeColor(node);
-  const isUnlocked=node.isFreeWindow||S.unlockedNodes.has(nodeId);
+  const accessible = isNodeAccessible(nodeId);
+  const isUnlocked = accessible && (node.isFreeWindow || S.unlockedNodes.has(nodeId));
   const isLiked=S.likedNodes.has(nodeId);
   const assets=getAvailableAssets(nodeId);
   const chars=assets.filter(a=>a.type==='character');
@@ -1499,8 +1592,17 @@ function openPanel(nodeId) {
          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center">
            <div style="font-size:11px;color:var(--faint);text-align:center">Video placeholder</div>
          </div>`;
+  } else if (!accessible) {
+    const parentNode = S.nodes[node.parentId];
+    videoHtml = `<video src="${parentNode?.videoUrl||'videos/Reborn.mp4'}" muted playsinline preload="metadata"
+        style="width:100%;height:100%;object-fit:cover;filter:blur(8px) brightness(0.25)"></video>
+      <div class="lock-overlay">
+        <div style="font-size:28px">⛔</div>
+        <div class="lock-text" style="font-size:13px;font-weight:500;color:var(--text)">Watch the previous episode first</div>
+        <div class="lock-text" style="font-size:11px">${parentNode?.title||''}</div>
+      </div>`;
   } else {
-    videoHtml = `<video src="base.mov#t=6" muted playsinline preload="metadata"
+    videoHtml = `<video src="${node.videoUrl||'videos/Reborn.mp4'}" muted playsinline preload="metadata"
         style="width:100%;height:100%;object-fit:cover;filter:blur(4px) brightness(0.3)"></video>
       <div class="lock-overlay">
         <div style="font-size:24px">🔒</div>
@@ -1528,10 +1630,14 @@ function openPanel(nodeId) {
       <div class="asset-row">${charChips}${sceneChips}</div>
     </div>`: ''}
     <div class="panel-actions">
-      <button class="like-btn ${isLiked?'liked':''}" onclick="likeNode('${nodeId}')">
-        ${isLiked?'♥':'♡'} ${node.likes}
-      </button>
-      ${node.status!=='dropped'?`<button class="btn sm primary" onclick="openCreateModal('${nodeId}')">✎ Continue Here</button>`:''}
+      ${isUnlocked
+        ? `<button class="like-btn ${isLiked?'liked':''}" onclick="likeNode('${nodeId}')">${isLiked?'♥':'♡'} ${node.likes}</button>`
+        : `<button class="like-btn" style="opacity:0.3;cursor:not-allowed" title="Watch this episode first">♡ ${node.likes}</button>`
+      }
+      ${isUnlocked && node.status!=='dropped'
+        ? `<button class="btn sm primary" onclick="openCreateModal('${nodeId}')">✎ Continue Here</button>`
+        : isUnlocked ? '' : `<span style="font-size:11px;color:var(--faint);align-self:center">${accessible?'Unlock to continue':'Watch previous first'}</span>`
+      }
     </div>`;
 
   document.getElementById('node-panel').classList.add('open');
@@ -1545,6 +1651,9 @@ function closePanel() {
 
 function likeNode(nodeId) {
   const node=S.nodes[nodeId]; if(!node) return;
+  if (!isNodeAccessible(nodeId) || (!node.isFreeWindow && !S.unlockedNodes.has(nodeId))) {
+    toast('Watch this episode first before liking.'); return;
+  }
   const was=S.likedNodes.has(nodeId);
   if (was){S.likedNodes.delete(nodeId);node.likes--;}else{S.likedNodes.add(nodeId);node.likes++;}
   openPanel(nodeId); drawTree();
@@ -1578,11 +1687,13 @@ function confirmUnlock(nodeId) {
     overlay.style.opacity = '0';
     setTimeout(() => {
       S.unlockedNodes.add(nodeId);
+      drawTree();
       openPanel(nodeId);
       toast('🔓 Unlocked! Creator received their share.');
     }, 650);
   } else {
     S.unlockedNodes.add(nodeId);
+    drawTree();
     openPanel(nodeId);
     toast('🔓 Unlocked! Creator received their share.');
   }
@@ -1597,6 +1708,9 @@ function closePaymentDialog() {
    ────────────────────────────────────────────────────────── */
 function openCreateModal(parentId) {
   const parent=S.nodes[parentId]; if(!parent) return;
+  if (!isNodeAccessible(parentId) || (!parent.isFreeWindow && !S.unlockedNodes.has(parentId))) {
+    toast('Watch this episode first before continuing the story.'); return;
+  }
   S.modalParentId=parentId; S.modalPhase='draft'; S.modalResult=null;
   S.modalError=''; S.modalPayloadVisible=false; S.modalResultIndex=0;
   S.modalPrompt=parent.prompt.replace(/^\[Character bible\].*?\n/u,'').trim();
