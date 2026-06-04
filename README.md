@@ -78,7 +78,7 @@ To enable real Google Omni / Veo generation, set:
 VIDEO_GENERATION_PROVIDER=google
 GOOGLE_CLOUD_PROJECT=your_google_cloud_project_id
 GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_VIDEO_MODEL=veo-3.1-fast-generate-001
+GOOGLE_VIDEO_MODEL=veo-3.1-generate-001
 GOOGLE_VIDEO_RESOLUTION=720p
 GOOGLE_API_KEY=your_google_api_key_here
 ```
@@ -186,6 +186,6 @@ gcloud storage buckets update gs://your-branchly-bucket --cors-file=gcs-cors.jso
 
 ## Generation Notes
 
-The main prototype defaults to live Google generation with `veo-3.1-fast-generate-001`, the faster Veo 3.1 model. When visual assets are selected, the server sends the first selected asset as the Veo image-to-video input image.
+The main prototype defaults to live Google generation with `veo-3.1-generate-001`, the standard Veo 3.1 model. Selected visual assets are treated as character/story guidance in the UI, but the server does not send them as Veo first-frame input unless first-frame mode is explicitly enabled.
 
 For a production path, the app should move the single-file prototype into modules, persist story state through the checkpoint API, and route all real Google generation through `server.js` so credentials stay private.

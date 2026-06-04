@@ -428,7 +428,7 @@ async function buildGoogleVideoRequest(payload, model) {
   };
 
   const negativePrompt = payload.negative_prompt || payload.negativePrompt;
-  if (negativePrompt) parameters.negativePrompt = negativePrompt;
+  if (String(negativePrompt || "").trim()) parameters.negativePrompt = negativePrompt;
 
   const seed = Number(payload.seed);
   if (Number.isFinite(seed)) parameters.seed = seed;
@@ -442,9 +442,9 @@ async function buildGoogleVideoRequest(payload, model) {
   const instance = { prompt };
   const referenceImages = await buildGoogleReferenceImages(payload.image_references || []);
   if (referenceImages.length) {
-    if (usesGoogleImageInput(model)) {
+    if (usesGoogleImageInput(model, payload)) {
       instance.image = referenceImages[0].image;
-    } else {
+    } else if (usesGoogleReferenceImages(model)) {
       instance.referenceImages = referenceImages;
     }
   }
@@ -574,14 +574,25 @@ function makeGoogleVeoSafePrompt(prompt) {
   ];
   const safePrompt = replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), prompt);
   return [
-    "Safe PG-13 cinematic short-drama scene with no violence, no injury, no weapons, no blood, no self-harm, and no explicit threat.",
+    "Cinematic workplace short-drama scene suitable for a broad audience.",
     safePrompt,
-    "Focus on facial expressions, dialogue tension, camera movement, lighting, and emotional restraint.",
+    "Use any supplied asset reference image only for character identity consistency, not as the first frame, pose, composition, or background.",
+    "Begin with a fresh moving shot, a new camera angle, and natural motion.",
+    "Focus on facial expressions, professional dialogue tension, camera movement, lighting, and emotional restraint.",
   ].join(" ");
 }
 
-function usesGoogleImageInput(model) {
-  return String(model || "").startsWith("veo-3.");
+function usesGoogleImageInput(model, payload = {}) {
+  if (!String(model || "").startsWith("veo-3.")) return false;
+  return payload.useImageAsFirstFrame === true || payload.use_image_as_first_frame === true;
+}
+
+function usesGoogleReferenceImages(model) {
+  return [
+    "veo-3.1-generate-001",
+    "veo-3.1-fast-generate-001",
+    "veo-2.0-generate-exp",
+  ].includes(String(model || ""));
 }
 
 function normalizeGoogleResolution(resolution) {
@@ -628,7 +639,7 @@ function getGoogleCloudProject() {
 }
 
 function getGoogleVideoModel(modelId = "") {
-  return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-fast-generate-001";
+  return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-generate-001";
 }
 
 function getVideoProvider() {

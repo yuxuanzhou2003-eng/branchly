@@ -846,7 +846,7 @@ const CONFIG = {
   API_BASE: '',
   DEFAULT_DURATION: 8,
   DEFAULT_QUALITY: '720p',
-  DEFAULT_MODEL: 'veo-3.1-fast-generate-001',
+  DEFAULT_MODEL: 'veo-3.1-generate-001',
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -1603,14 +1603,8 @@ function openCreateModal(parentId) {
   const assets=getAvailableAssets(parentId);
   const chars=assets.filter(a=>a.type==='character');
   const scenes=assets.filter(a=>a.type==='scene');
-  // Default: select the first (oldest/canonical) version of each character
-  const defaultChars = new Set();
-  const seenCharGroups = new Set();
-  chars.forEach(c => {
-    const gid = c.characterId || c.assetId;
-    if (!seenCharGroups.has(gid)) { seenCharGroups.add(gid); defaultChars.add(c.assetId); }
-  });
-  S.modalSelectedChars = defaultChars;
+  // Veo 3 image-to-video works best with one primary subject image.
+  S.modalSelectedChars = new Set(chars[0] ? [chars[0].assetId] : []);
   S.modalSelectedScene = scenes[0]?.assetId||'';
   S.addCharStep = null; S.addCharBaseId = chars[0]?.characterId||chars[0]?.assetId||null;
   S.addCharAge = ''; S.addCharDesc = '';
@@ -1897,7 +1891,7 @@ function renderModal() {
       <div class="options-row">
         <select class="option-select" id="modal-duration"><option value="8">8 sec</option><option value="6">6 sec</option><option value="4">4 sec</option></select>
         <select class="option-select" id="modal-motion"><option value="push_in">Push In</option><option value="pull_back">Pull Back</option><option value="pan_left">Pan Left</option><option value="static">Static</option></select>
-        <select class="option-select" id="modal-model"><option value="veo-3.1-fast-generate-001">Google Omni · Flash</option><option value="veo-3.1-generate-001">Google Omni · Quality</option><option value="veo-3.0-fast-generate-001">Google Veo 3 · Fast</option><option value="veo-3.0-generate-001">Google Veo 3 · Text Only</option></select>
+        <select class="option-select" id="modal-model"><option value="veo-3.1-generate-001">Google Omni · Standard</option><option value="veo-3.1-fast-generate-001">Google Omni · Flash</option><option value="veo-3.0-fast-generate-001">Google Veo 3 · Fast</option><option value="veo-3.0-generate-001">Google Veo 3 · Text Only</option></select>
       </div>
     </div>`;
 
@@ -1984,10 +1978,16 @@ function makeVeoSafePrompt(prompt) {
   ];
   const safePrompt = replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), prompt);
   return [
-    'Safe PG-13 cinematic short-drama scene with no violence, no injury, no weapons, no blood, no self-harm, and no explicit threat.',
+    'Cinematic workplace short-drama scene suitable for a broad audience.',
     safePrompt,
-    'Focus on facial expressions, dialogue tension, camera movement, lighting, and emotional restraint.',
+    'Use any supplied asset reference image only for character identity consistency, not as the first frame, pose, composition, or background.',
+    'Begin with a fresh moving shot, a new camera angle, and natural motion.',
+    'Focus on facial expressions, professional dialogue tension, camera movement, lighting, and emotional restraint.',
   ].join(' ');
+}
+
+function isVeo3Model(model) {
+  return String(model||'').startsWith('veo-3.');
 }
 
 function buildPayload() {
@@ -2001,34 +2001,40 @@ function buildPayload() {
   const camera=document.getElementById('modal-motion')?.value||'push_in';
   const model=document.getElementById('modal-model')?.value||'v6';
   const preset=PRESET_RESULTS[S.modalResultIndex];
-  const refs=[
-    ...chars.map(c=>({
-      type:'subject',
-      referenceType:'asset',
-      img_id:c.pixverseImgId,
-      ref_name:c.refName,
-      refImageUrl:c.refImageUrl,
-      gcsUri:c.gcsUri||'',
-    })),
-    ...(scene?[{
-      type:'background',
-      referenceType:'asset',
-      img_id:scene.pixverseImgId,
-      ref_name:scene.refName,
-      refImageUrl:scene.refImageUrl,
-      gcsUri:scene.gcsUri||'',
-    }]:[]),
-  ].slice(0,3);
-  const lockedPrefix=chars.map(c=>c.promptPrefix).filter(Boolean).join('. ');
-  const negPrompt=chars.map(c=>c.negativePrompt).filter(Boolean)
+  const generationChars=isVeo3Model(model)?chars.slice(0,1):chars;
+  const characterRefs=generationChars.map(c=>({
+    type:'subject',
+    referenceType:'asset',
+    img_id:c.pixverseImgId,
+    ref_name:c.refName,
+    refImageUrl:c.refImageUrl,
+    gcsUri:c.gcsUri||'',
+  }));
+  const sceneRefs=scene?[{
+    type:'background',
+    referenceType:'asset',
+    img_id:scene.pixverseImgId,
+    ref_name:scene.refName,
+    refImageUrl:scene.refImageUrl,
+    gcsUri:scene.gcsUri||'',
+  }]:[];
+  const refs=(isVeo3Model(model)?characterRefs:[...characterRefs,...sceneRefs]).slice(0,3);
+  const lockedPrefix=generationChars.map(c=>c.promptPrefix).filter(Boolean).join('. ');
+  const negPrompt=generationChars.map(c=>c.negativePrompt).filter(Boolean)
     .concat(['no distorted face','no flicker','no sudden identity change']).join(', ');
   const storyContext = getStoryContext(S.modalParentId);
-  const rawPrompt = [
+  const scenePrompt = scene?.name ? `Setting: ${scene.name}` : null;
+  const rawPromptParts = isVeo3Model(model) ? [
+    lockedPrefix,
+    scenePrompt,
+    userPrompt,
+  ] : [
     style?.promptPrefix,
     lockedPrefix,
     storyContext ? 'Story so far: ' + storyContext : null,
     userPrompt,
-  ].filter(Boolean).join('. ');
+  ];
+  const rawPrompt = rawPromptParts.filter(Boolean).join('. ');
   return {
     _demo: CONFIG.DEMO_MODE?'DEMO_MODE: uses preset result':'LIVE: calls Google Omni video generation via /api/generate',
     provider:'google',
@@ -2036,7 +2042,8 @@ function buildPayload() {
     image_references:refs,
     prompt:makeVeoSafePrompt(rawPrompt),
     original_prompt:rawPrompt,
-    negative_prompt:negPrompt,
+    negative_prompt:isVeo3Model(model)?'':negPrompt,
+    use_image_as_first_frame:false,
     model,duration,quality:CONFIG.DEFAULT_QUALITY,
     aspect_ratio:'9:16',motion_mode:'normal',camera_movement:camera,
     seed:preset?.seed||Math.floor(Math.random()*1e9),
