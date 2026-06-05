@@ -187,8 +187,6 @@ async function routeApi(req, res) {
   if (req.method === "POST" && url.pathname === "/api/generate-character") {
     const { description, style = "cinematic realism, detailed" } = await readJson(req);
     if (!description) throw new Error("description is required.");
-    const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
-    if (!apiKey) throw new Error("Missing GOOGLE_API_KEY.");
 
     const angles = [
       { label: "Front",   hint: "front view, facing directly toward the camera, symmetrical pose" },
@@ -198,19 +196,10 @@ async function routeApi(req, res) {
 
     const images = await Promise.all(angles.map(async (angle) => {
       const prompt = `Character design reference sheet, ${angle.hint}, full body, ${description}, ${style}, pure white background, single character, no text, no watermark, clean professional illustration`;
-      const resp = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instances: [{ prompt }],
-            parameters: { sampleCount: 1, aspectRatio: "3:4" },
-          }),
-        }
-      );
-      const data = await resp.json();
-      if (data.error) throw new Error(`Imagen error: ${data.error.message}`);
+      const data = await googleGenerateImage(prompt, {
+        sampleCount: 1,
+        aspectRatio: "3:4",
+      });
       const b64 = data.predictions?.[0]?.bytesBase64Encoded;
       if (!b64) throw new Error("No image returned for " + angle.label);
       return { label: angle.label, dataUrl: `data:image/png;base64,${b64}` };
@@ -418,6 +407,27 @@ async function googleFetchVideoOperation(operationName) {
   return readGoogleJson(response, "Google Veo operation poll");
 }
 
+async function googleGenerateImage(prompt, parameters = {}) {
+  requireGoogleVideoConfig();
+  const model = getGoogleImageModel();
+  const response = await fetch(googleImageEndpoint(model), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      ...(await getGoogleAuthHeaders()),
+    },
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: Number(parameters.sampleCount || 1),
+        aspectRatio: parameters.aspectRatio || "3:4",
+      },
+    }),
+  });
+
+  return readGoogleJson(response, "Google Imagen generation request");
+}
+
 async function buildGoogleVideoRequest(payload, model) {
   const prompt = makeGoogleVeoSafePrompt(payload.prompt || "");
   const parameters = {
@@ -614,6 +624,13 @@ function googleVideoEndpoint(action, modelId = "") {
   return `https://${location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(project)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:${action}`;
 }
 
+function googleImageEndpoint(modelId = "") {
+  const location = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
+  const project = getGoogleCloudProject();
+  const model = getGoogleImageModel(modelId);
+  return `https://${location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(project)}/locations/${encodeURIComponent(location)}/publishers/google/models/${encodeURIComponent(model)}:predict`;
+}
+
 async function readGoogleJson(response, action) {
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
@@ -640,6 +657,10 @@ function getGoogleCloudProject() {
 
 function getGoogleVideoModel(modelId = "") {
   return modelId || process.env.GOOGLE_VIDEO_MODEL || "veo-3.1-generate-001";
+}
+
+function getGoogleImageModel(modelId = "") {
+  return modelId || process.env.GOOGLE_IMAGE_MODEL || "imagen-3.0-generate-002";
 }
 
 function getVideoProvider() {
