@@ -3,6 +3,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { createSign, randomUUID } = require("node:crypto");
 const { Readable } = require("node:stream");
+const { pipeline } = require("node:stream/promises");
 
 const root = __dirname;
 const port = Number(process.env.PORT || 5173);
@@ -1126,7 +1127,7 @@ async function streamGcsMedia(req, res, url) {
     return;
   }
 
-  Readable.fromWeb(response.body).pipe(res);
+  await pipeline(Readable.fromWeb(response.body), res);
 }
 
 function mediaObjectNameFromUrl(url) {
@@ -1358,15 +1359,15 @@ async function serveGitHubRawStatic(req, res, filePath) {
       ? "no-store"
       : "public, max-age=300",
   };
-  const contentLength = response.headers.get("content-length");
-  if (contentLength) headers["Content-Length"] = contentLength;
 
+  const body = Buffer.from(await response.arrayBuffer());
+  headers["Content-Length"] = body.length;
   res.writeHead(200, headers);
   if (req.method === "HEAD") {
     res.end();
     return true;
   }
-  Readable.fromWeb(response.body).pipe(res);
+  res.end(body);
   return true;
 }
 
@@ -1391,7 +1392,7 @@ async function serveStaticFile(res, absolute, existingStat = null) {
     "Content-Type": mimeForPath(absolute),
     "Content-Length": stat.size,
   });
-  fs.createReadStream(absolute).pipe(res);
+  await pipeline(fs.createReadStream(absolute), res);
 }
 
 function resolveSafePath(inputPath) {

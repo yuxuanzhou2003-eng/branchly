@@ -1,6 +1,9 @@
 [
   {
-    "origin": ["https://pixverse-hackathon.vercel.app"],
+    "origin": [
+      "https://pixverse-hackathon.vercel.app",
+      "https://traeduanjunnrl.vercel.app"
+    ],
     "method": ["GET", "HEAD", "POST", "PUT", "OPTIONS"],
     "responseHeader": [
       "Content-Type",
