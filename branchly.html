@@ -1237,11 +1237,12 @@ async function hydrateStoredCheckpoints() {
   const nodeIds = Object.keys(S.nodes);
   const results = await Promise.allSettled(nodeIds.map(async nodeId => {
     const storyId = S.nodes[nodeId].storyId || 'story_001';
-    const res = await fetch(`/api/checkpoints/${encodeURIComponent(nodeId)}?storyId=${encodeURIComponent(storyId)}&includeAssets=false`);
+    const res = await fetch(`/api/checkpoints/${encodeURIComponent(nodeId)}?storyId=${encodeURIComponent(storyId)}&includeAssets=true`);
     if (res.status === 404 || !res.ok) return;
     const data = await res.json();
     const ownAssetIds = data.checkpoint?.ownAssetIds || [];
     mergeStoredCheckpoint(data.checkpoint);
+    (data.inheritedAssets?.assets || []).forEach(mergeStoredAsset);
     await Promise.allSettled(ownAssetIds
       .filter(assetId => !ASSETS[assetId])
       .map(async assetId => {
@@ -1816,13 +1817,17 @@ function selectCharVersion(characterId, assetId) {
   renderModal();
 }
 
-function deleteCharacterFromBranch(assetId) {
+async function deleteCharacterFromBranch(assetId) {
   const node = S.nodes[S.modalParentId];
   const asset = ASSETS[assetId];
   if (!node || !asset) return;
 
   const label = characterPromptName(asset);
   if (!confirm(`Remove ${label} from this branch? Other branches can still use the asset.`)) return;
+
+  const previousOwnAssetIds = [...(node.ownAssetIds || [])];
+  const previousRemovedAssetIds = [...(node.removedAssetIds || [])];
+  const previousSelectedChars = new Set(S.modalSelectedChars);
 
   node.ownAssetIds = (node.ownAssetIds || []).filter(id => id !== assetId);
   node.removedAssetIds = [...new Set([...(node.removedAssetIds || []), assetId])];
@@ -1834,7 +1839,17 @@ function deleteCharacterFromBranch(assetId) {
   }
 
   renderModal();
-  persistBranchCheckpointInBackground(node, `removal of ${label}`);
+  toast(`Saving removal of ${label}...`, 2400);
+  try {
+    await persistBranchCheckpoint(node);
+    toast(`✓ Saved removal of ${label} to branch storage.`);
+  } catch (error) {
+    node.ownAssetIds = previousOwnAssetIds;
+    node.removedAssetIds = previousRemovedAssetIds;
+    S.modalSelectedChars = previousSelectedChars;
+    renderModal();
+    toast(`Could not save removal: ${error.message}`, 3200);
+  }
 }
 
 function closeModal() { document.getElementById('modal-create').classList.remove('open'); }
@@ -2485,6 +2500,7 @@ function publishBranch() {
     likes:0, impressions:0, paidUnlocks:0,
     isProtected:true, status:'alive', ownAssetIds:[], thumbUrl:'',
   };
+  persistBranchCheckpointInBackground(S.nodes[newId], S.nodes[newId].title);
   if (!S.newNodeIds) S.newNodeIds = new Set();
   S.newNodeIds.add(newId);
   closeModal();

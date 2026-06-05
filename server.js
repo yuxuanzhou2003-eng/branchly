@@ -900,7 +900,13 @@ async function resolveCheckpointAssets(storyId, nodeId) {
   let currentId = nodeId;
 
   while (currentId) {
-    const checkpoint = await loadCheckpointManifest(storyId, currentId);
+    let checkpoint;
+    try {
+      checkpoint = await loadCheckpointManifest(storyId, currentId);
+    } catch (error) {
+      if (chain.length && isMissingStorageError(error)) break;
+      throw error;
+    }
     chain.unshift({
       nodeId: checkpoint.nodeId,
       ownAssetIds: checkpoint.ownAssetIds,
