@@ -308,11 +308,19 @@ async function routeApi(req, res) {
     if (getVideoProvider() === "google" || videoId.startsWith("projects/")) {
       const raw = await googleFetchVideoOperation(videoId);
       const response = raw.response || {};
-      const videos = response.videos || [];
-      const filteredCount = Number(response.raiMediaFilteredCount || 0);
-      const filteredReasons = Array.isArray(response.raiMediaFilteredReasons)
-        ? response.raiMediaFilteredReasons
-        : [];
+      // Veo 3.x returns response.generateVideoResponse.generatedSamples[].video.uri
+      // Older format returned response.videos[].gcsUri — support both
+      const gvr = response.generateVideoResponse || {};
+      const rawVideos = response.videos?.length
+        ? response.videos
+        : (gvr.generatedSamples || []).map(s => ({ gcsUri: s.video?.uri || s.video?.gcsUri || "" }));
+      const videos = rawVideos;
+      const filteredCount = Number(gvr.raiMediaFilteredCount ?? response.raiMediaFilteredCount ?? 0);
+      const filteredReasons = Array.isArray(gvr.raiMediaFilteredReasons)
+        ? gvr.raiMediaFilteredReasons
+        : Array.isArray(response.raiMediaFilteredReasons)
+          ? response.raiMediaFilteredReasons
+          : [];
       const filterMessage = filteredCount > 0
         ? filteredReasons.join(" ") || `${filteredCount} generated video(s) were filtered by Vertex AI safety policy.`
         : "";
