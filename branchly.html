@@ -64,11 +64,7 @@ img { display: block; }
   cursor: pointer;
 }
 .logo-mark {
-  width: 26px; height: 26px; border-radius: 7px;
-  background: linear-gradient(135deg, var(--alive) 0%, #4ab8ff 100%);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 800; color: #04060f; letter-spacing: -1px;
-  box-shadow: 0 0 14px rgba(120,216,255,0.4);
+  height: 28px; width: auto; display: block;
 }
 .nav-center { flex: 1; display: flex; justify-content: center; }
 .nav-back {
@@ -679,7 +675,7 @@ option { background: #07101e; }
   <!-- ── Nav ────────────────────────────── -->
   <nav id="nav">
     <div class="logo" onclick="navigate('home')">
-      <div class="logo-mark">B</div>
+      <img class="logo-mark" src="logo.png" alt="Branchly"/>
       Branchly
     </div>
     <div class="nav-center">
