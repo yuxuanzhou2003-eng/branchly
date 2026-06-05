@@ -1534,6 +1534,15 @@ async function serveStatic(req, res) {
     : pathname === "/storytree_creator.html"
       ? "branchly.html"
       : pathname.slice(1);
+
+  if (isStaticMediaPath(requested)) {
+    if (await serveStaticFromGcs(req, res, requested)) {
+      return;
+    }
+    sendJson(res, 404, { error: "File not found." });
+    return;
+  }
+
   const absolute = resolveSafePath(requested);
 
   let stat;
@@ -1560,15 +1569,15 @@ async function serveStatic(req, res) {
 
 async function readStaticBytes(filePath) {
   const localPath = String(filePath || "").replace(/^\/+/, "");
-  const absolute = resolveSafePath(localPath);
-  try {
-    return await fs.promises.readFile(absolute);
-  } catch (error) {
-    if (!isMissingStorageError(error) || !isStaticMediaPath(localPath) || !isGcsConfigured()) {
-      throw error;
+  if (isStaticMediaPath(localPath)) {
+    if (!isGcsConfigured()) {
+      throw new Error("GCS is required for static media assets.");
     }
     return gcsDownloadObjectBytes(staticMediaStorageKey(localPath));
   }
+
+  const absolute = resolveSafePath(localPath);
+  return fs.promises.readFile(absolute);
 }
 
 async function serveStaticFile(res, absolute, existingStat = null) {
