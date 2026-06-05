@@ -216,41 +216,32 @@ async function routeApi(req, res) {
     };
     const preset = stylePresets[style] || stylePresets.cinematic;
 
-    const angles = [
-      { label: "3/4 Left",  hint: "three-quarter view, 45 degrees to the left, looking slightly past camera" },
-      { label: "Front",     hint: "front facing, looking directly at camera, symmetrical" },
-      { label: "3/4 Right", hint: "three-quarter view, 45 degrees to the right, looking slightly past camera" },
-    ];
+    const stylePrefix = style === "cinematic" ? "Photograph: " : style === "anime" ? "Anime illustration: " : "Digital painting: ";
+    const prompt = `${stylePrefix}character reference sheet, three portrait panels side by side of the same person: left panel is 45-degree three-quarter view facing left, center panel is front-facing directly at camera, right panel is 45-degree three-quarter view facing right. Head and upper chest only. ${description}. ${preset.positive}. All three panels show the exact same person. Neutral grey background, consistent lighting across all panels. Triptych layout, no text, no labels, no watermark.`;
 
-    const images = await Promise.all(angles.map(async (angle) => {
-      const stylePrefix = style === "cinematic" ? "Photograph: " : style === "anime" ? "Anime illustration: " : "Digital painting: ";
-      const prompt = `${stylePrefix}portrait reference, ${angle.hint}, head and upper chest only, ${description}, ${preset.positive}, single subject, no text, no watermark`;
+    const requestBody = {
+      instances: [{ prompt }],
+      parameters: {
+        sampleCount: 1,
+        aspectRatio: "16:9",
+        negativePrompt: preset.negative,
+      },
+    };
 
-      const requestBody = {
-        instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: "3:4",
-          negativePrompt: preset.negative,
-        },
-      };
+    const resp = await fetch(googleImageEndpoint(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        ...(await getGoogleAuthHeaders()),
+      },
+      body: JSON.stringify(requestBody),
+    });
+    const data = await readGoogleJson(resp, "Imagen character reference sheet");
+    if (data.error) throw new Error(`Imagen error: ${data.error.message}`);
+    const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+    if (!b64) throw new Error("No image returned from Imagen");
 
-      const resp = await fetch(googleImageEndpoint(), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          ...(await getGoogleAuthHeaders()),
-        },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await readGoogleJson(resp, `Imagen character (${angle.label})`);
-      if (data.error) throw new Error(`Imagen error (${angle.label}): ${data.error.message}`);
-      const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-      if (!b64) throw new Error("No image returned for " + angle.label);
-      return { label: angle.label, dataUrl: `data:image/png;base64,${b64}` };
-    }));
-
-    sendJson(res, 200, { images });
+    sendJson(res, 200, { images: [{ label: "Reference Sheet", dataUrl: `data:image/png;base64,${b64}` }] });
     return;
   }
 

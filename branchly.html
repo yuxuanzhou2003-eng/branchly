@@ -1848,20 +1848,15 @@ function renderAddCharSection(charGroups) {
     </div>`;
   }
   if (S.addCharStep === 'new_results' && S.addCharNewImages) {
-    const imgs = S.addCharNewImages;
-    const imgCards = imgs.map(img => {
-      const sel = S.addCharSelectedImg === img.label;
-      return `<div onclick="S.addCharSelectedImg='${img.label}';renderModal()" style="cursor:pointer;border-radius:8px;overflow:hidden;border:2px solid ${sel?'var(--alive)':'var(--border2)'};flex:1">
-        <div style="font-size:10px;color:var(--text2);padding:4px 8px;background:rgba(0,0,0,0.3)">${img.label}</div>
-        <img src="${img.dataUrl}" style="width:100%;display:block;aspect-ratio:3/4;object-fit:cover"/>
-      </div>`;
-    }).join('');
+    const img = S.addCharNewImages[0];
     return `<div class="add-char-panel">
-      <div style="font-size:12px;color:var(--text2)">Select the reference image to use:</div>
-      <div style="display:flex;gap:6px">${imgCards}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:4px">3-angle reference sheet</div>
+      <div style="border-radius:8px;overflow:hidden;border:1px solid var(--border2)">
+        <img src="${img.dataUrl}" style="width:100%;display:block;aspect-ratio:16/9;object-fit:cover"/>
+      </div>
       <div class="add-char-actions">
         <button onclick="S.addCharStep=S.addCharMode==='variant'?'variant':'new';renderModal()">← Regenerate</button>
-        <button class="primary" onclick="S.addCharMode==='variant'?finalizeVariant():confirmNewChar()" ${!S.addCharSelectedImg?'disabled':''}>
+        <button class="primary" onclick="S.addCharMode==='variant'?finalizeVariant():confirmNewChar()">
           ${S.addCharMode==='variant'?'Add Version':'Add Character'}
         </button>
       </div>
@@ -1971,7 +1966,7 @@ async function generateVariantImages() {
 }
 
 function finalizeVariant() {
-  const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
+  const img = S.addCharNewImages?.[0];
   if (!img) return;
   const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
   if (!base) return;
@@ -2070,7 +2065,7 @@ function persistBranchAssetInBackground(asset, node, label) {
 }
 
 function confirmNewChar() {
-  const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
+  const img = S.addCharNewImages?.[0];
   if (!img) return;
   const name = cleanCharacterName(S.addCharNewName);
   if (!name) { toast('Please enter a character name.'); return; }
