@@ -754,7 +754,7 @@ function requireGoogleVideoConfig() {
 
   const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
   if (!getServiceAccountConfig() && (!apiKey || apiKey === "your_google_api_key_here")) {
-    throw new Error("Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_API_KEY.");
+    throw new Error("Missing Google credentials. Set split GCS service-account env vars or GOOGLE_API_KEY.");
   }
 }
 
@@ -804,7 +804,7 @@ async function getGoogleAuthHeaders() {
     return { "x-goog-api-key": apiKey };
   }
 
-  throw new Error("Missing Google credentials. Set GOOGLE_APPLICATION_CREDENTIALS or GOOGLE_API_KEY.");
+  throw new Error("Missing Google credentials. Set split GCS service-account env vars or GOOGLE_API_KEY.");
 }
 
 async function saveCheckpointBundle(body) {
@@ -1164,7 +1164,7 @@ function getCheckpointStorageState() {
     : {
         backend: "local",
         directory: checkpointStorageRoot,
-        note: "Set GCS_BUCKET plus GOOGLE_APPLICATION_CREDENTIALS or GCS_SERVICE_ACCOUNT_JSON to store checkpoints in Google Cloud Storage.",
+        note: "Set GCS_BUCKET plus split GCS service-account env vars or GCS_SERVICE_ACCOUNT_JSON to store checkpoints in Google Cloud Storage.",
       };
 }
 
@@ -1391,16 +1391,6 @@ function getServiceAccountConfig() {
 
   const fieldBasedConfig = getServiceAccountConfigFromEnvFields();
   if (fieldBasedConfig) return fieldBasedConfig;
-
-  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const trimmed = process.env.GOOGLE_APPLICATION_CREDENTIALS.trim();
-    if (trimmed.startsWith("{")) return JSON.parse(trimmed);
-
-    const credentialPath = path.resolve(root, process.env.GOOGLE_APPLICATION_CREDENTIALS);
-    if (fs.existsSync(credentialPath)) {
-      return JSON.parse(fs.readFileSync(credentialPath, "utf8"));
-    }
-  }
 
   return null;
 }

@@ -525,7 +525,17 @@ GOOGLE_API_KEY=your_google_api_key_here
 
 GCS_BUCKET=your-branchly-bucket
 GCS_PREFIX=branchly
-GOOGLE_APPLICATION_CREDENTIALS=./branchly-storage-key.json
+GCS_TYPE=service_account
+GCS_PROJECT_ID=your_google_cloud_project_id
+GCS_PRIVATE_KEY_ID=your_private_key_id
+GCS_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GCS_CLIENT_EMAIL=service-account@project.iam.gserviceaccount.com
+GCS_CLIENT_ID=your_client_id
+GCS_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+GCS_TOKEN_URI=https://oauth2.googleapis.com/token
+GCS_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+GCS_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/service-account%40project.iam.gserviceaccount.com
+GCS_UNIVERSE_DOMAIN=googleapis.com
 ```
 
 ### Recommended IAM Roles

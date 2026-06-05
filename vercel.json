@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/index.js": {
-      "includeFiles": "{server.js,branchly.html,index.html,logo.png,branchly-storage-key.json,assets/**,videos/**}"
+      "includeFiles": "{server.js,branchly.html,index.html,logo.png,assets/**,videos/**}"
     }
   },
   "headers": [
