@@ -29,6 +29,22 @@ The result is a new content primitive: **a playable, monetizable, AI-generated s
 
 ---
 
+## Product Experience Flow
+
+Branchly is designed around one complete creator-viewer loop that can be demonstrated end to end:
+
+1. **Enter the story universe.** A viewer opens the main story tree and sees the root episode, high-performing branches, endangered branches, and dropped branches as a living visual graph.
+2. **Explore a branch.** Each node exposes a free synopsis, video preview, creator attribution, likes, unlock state, and downstream child branches.
+3. **Signal interest.** Viewers like branches they want to survive and unlock paid episodes after the free window, giving the platform demand data beyond passive views.
+4. **Continue from any node.** A creator selects **Continue Here**, inherits the parent prompt, character references, scene context, and style constraints, then edits the next-scene prompt.
+5. **Generate with AI.** Branchly sends the continuation prompt and selected character references to Google Veo 3.1, then polls the long-running operation until the video is ready.
+6. **Preview and attach.** The creator previews the generated video, confirms it, and the new branch grows from the parent node.
+7. **Let the market prune the tree.** Strong branches gain visibility and unlocks. Weak branches become endangered, then dropped, while still remaining recoverable if audience interest returns.
+
+The important product idea is that **creation, distribution, feedback, monetization, and pruning all happen inside the same story graph**.
+
+---
+
 ## Core Product Loop
 
 ```text
@@ -44,6 +60,20 @@ Viewers watch, like, and unlock
     ↓
 High-performing branches grow; weak branches fade
 ```
+
+### Branch Lifecycle
+
+Branchly turns audience behavior into a lightweight evolution system:
+
+| Stage | What Happens | Product Purpose |
+|---|---|---|
+| Protected | A new branch receives an initial grace period | Gives creators a fair chance before ranking pressure |
+| Active | Likes, watches, and unlocks determine visibility | Rewards branches with real audience pull |
+| Endangered | Low-signal branches dim visually in the tree | Makes quality control visible without deleting work |
+| Dropped | Branches leave the main path but remain recoverable | Keeps the main universe readable while preserving creator ownership |
+| Revived | Renewed likes or unlocks can bring a branch back | Makes the archive a discovery surface, not a graveyard |
+
+This creates a memorable demo mechanic: **likes are nutrients, paid unlocks are validation, and drop is editorial pruning**.
 
 ### Monetization Model
 
@@ -62,6 +92,64 @@ Prototype revenue split:
 - **21%** goes to the platform.
 - Free windows can be used to bootstrap new branches.
 - Dropped branches can be revived if viewer interest returns.
+
+### Revenue Streams
+
+Branchly supports multiple business lines from the same product surface:
+
+| Stream | How It Works | Why It Scales |
+|---|---|---|
+| Generation tokens | Creators spend tokens to generate or shuffle branches | Revenue is tied directly to creative activity |
+| Paid unlocks | Viewers pay to watch mature or premium branches | Demand is validated at the branch level |
+| Platform commission | Branchly takes a fee from unlock revenue | Incentives stay aligned with creator success |
+| Sponsored universes | Brands or IP owners seed official story worlds | One seed episode can produce many fan-created paths |
+| Creator analytics | Top creators can receive paid tools for testing prompts and improving conversion | The data layer becomes more valuable as the graph grows |
+
+---
+
+## Market Potential
+
+Branchly sits at the intersection of four large trends:
+
+- **Short-drama monetization.** Mobile-first episodic storytelling has proven that viewers will pay for fast emotional payoff, cliffhangers, and serialized unlocks.
+- **Creator economy.** Fans already remix stories on social platforms, but most platforms do not give them structured IP inheritance, revenue share, or a path to canon influence.
+- **Generative video.** AI lowers the cost of producing alternate scenes, niche continuations, and personalized storylines that traditional crews could not economically film.
+- **Interactive entertainment.** Audiences increasingly expect participation, from branching games to fandom voting to collaborative worldbuilding.
+
+The wedge is not simply "make AI videos." The wedge is **turn every successful short-drama moment into a new marketplace for continuations**.
+
+### Target Users
+
+| User | Need | Branchly Value |
+|---|---|---|
+| Viewers | More agency and faster access to the stories they care about | Vote, unlock, and steer story direction |
+| Fan creators | A way to continue popular stories without a production crew | Generate branches from inherited assets and prompts |
+| IP owners | More content surface area without linear production cost | Seed worlds and let the community expand them |
+| Platforms | Higher retention and monetization density | Each node can become a new engagement and revenue surface |
+
+### Business Value
+
+Branchly creates value through compounding story assets:
+
+- **Lower production cost:** AI video generation makes it feasible to test many narrative paths.
+- **Higher content density:** One seed episode can produce dozens of monetizable continuations.
+- **Better demand discovery:** Likes and unlocks reveal which characters, scenes, and plotlines deserve investment.
+- **Creator-aligned growth:** Revenue sharing turns fan creativity into platform supply.
+- **Reusable IP memory:** Checkpoint assets preserve characters, scenes, and style across branches instead of starting every generation from scratch.
+- **Self-pruning catalog:** Endangered and dropped states keep the story tree navigable as the universe scales.
+
+### Competitive Advantages
+
+Branchly is differentiated from ordinary UGC video tools and linear short-drama apps:
+
+| Advantage | Why It Matters |
+|---|---|
+| Story graph, not feed-only discovery | Every branch has lineage, context, and a clear continuation path |
+| Asset inheritance | Characters and scenes stay reusable across checkpoints, reducing repeated prompt work |
+| Revenue-linked branching | Creators have a reason to improve branches, not just upload once |
+| Drop and revival mechanics | Quality control becomes part of the product experience |
+| AI-native production loop | Generation, preview, storage, playback, and publishing are integrated |
+| IP-friendly structure | Rights holders can seed official universes while measuring which fan paths resonate |
 
 ---
 
