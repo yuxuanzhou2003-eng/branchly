@@ -217,31 +217,32 @@ async function routeApi(req, res) {
     const preset = stylePresets[style] || stylePresets.cinematic;
 
     const stylePrefix = style === "cinematic" ? "Photograph: " : style === "anime" ? "Anime illustration: " : "Digital painting: ";
-    const prompt = `${stylePrefix}character reference sheet, three portrait panels side by side of the same person: left panel is 45-degree three-quarter view facing left, center panel is front-facing directly at camera, right panel is 45-degree three-quarter view facing right. Head and upper chest only. ${description}. ${preset.positive}. All three panels show the exact same person. Neutral grey background, consistent lighting across all panels. Triptych layout, no text, no labels, no watermark.`;
+    const prompt = `${stylePrefix}character reference sheet showing the same person in three portrait panels side by side. Left panel: 45-degree three-quarter view facing left. Center panel: front-facing directly at camera. Right panel: 45-degree three-quarter view facing right. Subject: ${description}. ${preset.positive}. All three panels show the exact same person with consistent face and appearance. Neutral grey background, consistent soft studio lighting. Head and upper chest only. No text, no labels, no watermark.`;
 
-    const requestBody = {
-      instances: [{ prompt }],
-      parameters: {
-        sampleCount: 1,
-        aspectRatio: "16:9",
-        negativePrompt: preset.negative,
-      },
-    };
+    const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
+    if (!apiKey) throw new Error("Missing GOOGLE_API_KEY for character generation.");
 
-    const resp = await fetch(googleImageEndpoint(), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        ...(await getGoogleAuthHeaders()),
-      },
-      body: JSON.stringify(requestBody),
-    });
-    const data = await readGoogleJson(resp, "Imagen character reference sheet");
-    if (data.error) throw new Error(`Imagen error: ${data.error.message}`);
-    const b64 = data.predictions?.[0]?.bytesBase64Encoded;
-    if (!b64) throw new Error("No image returned from Imagen");
+    const geminiResp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseModalities: ["IMAGE"] },
+        }),
+      }
+    );
+    const geminiData = await geminiResp.json();
+    if (geminiData.error) throw new Error(`Gemini image error: ${geminiData.error.message}`);
 
-    sendJson(res, 200, { images: [{ label: "Reference Sheet", dataUrl: `data:image/png;base64,${b64}` }] });
+    const parts = geminiData.candidates?.[0]?.content?.parts || [];
+    const imgPart = parts.find(p => p.inlineData);
+    if (!imgPart) throw new Error("No image returned from Gemini");
+
+    const b64 = imgPart.inlineData.data;
+    const mime = imgPart.inlineData.mimeType || "image/png";
+    sendJson(res, 200, { images: [{ label: "Reference Sheet", dataUrl: `data:${mime};base64,${b64}` }] });
     return;
   }
 
