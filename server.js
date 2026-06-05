@@ -466,7 +466,7 @@ async function googleGenerateImage(prompt, parameters = {}) {
 }
 
 async function buildGoogleVideoRequest(payload, model) {
-  const prompt = makeGoogleVeoSafePrompt(payload.prompt || "");
+  const prompt = makeGoogleVeoSafePrompt(withCharacterReferenceBinding(payload));
   const parameters = {
     aspectRatio: payload.aspect_ratio || payload.aspectRatio || "9:16",
     durationSeconds: normalizeGoogleDuration(payload.duration),
@@ -500,6 +500,36 @@ async function buildGoogleVideoRequest(payload, model) {
     instances: [instance],
     parameters,
   };
+}
+
+function withCharacterReferenceBinding(payload = {}) {
+  const prompt = String(payload.prompt || "");
+  if (/Character-reference binding/i.test(prompt)) return prompt;
+  const references = Array.isArray(payload.image_references) ? payload.image_references : [];
+  const roster = references
+    .slice(0, VEO_REFERENCE_IMAGE_LIMIT)
+    .map((reference, index) => {
+      const name = cleanPromptText(reference.character_name || reference.name || reference.ref_name || `Reference ${index + 1}`);
+      const age = cleanPromptText(reference.age_label || reference.ageLabel);
+      const label = age ? `${name} (${age})` : name;
+      return `Reference image ${index + 1} is ${label}.`;
+    })
+    .join(" ");
+
+  if (!roster) return prompt;
+
+  return [
+    "Character-reference binding, follow exactly:",
+    roster,
+    "Keep each named character matched to their own reference image. Do not swap names, faces, bodies, clothing, or actions between characters.",
+    "When the prompt says a named character performs an action or speaks, only that named character performs it.",
+    "Do not create duplicates, clones, lookalikes, extra versions of the same character, or unnamed replacement characters.",
+    prompt,
+  ].join(" ");
+}
+
+function cleanPromptText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
 }
 
 async function buildGoogleReferenceImages(references) {

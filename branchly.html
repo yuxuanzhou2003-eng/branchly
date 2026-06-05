@@ -2279,6 +2279,34 @@ function isVeo3Model(model) {
   return String(model||'').startsWith('veo-3.');
 }
 
+function characterPromptName(c) {
+  const name = cleanCharacterName(c.name) || cleanCharacterName(c.refName) || 'Unnamed character';
+  const age = c.ageLabel && c.ageLabel !== 'Unknown Age' ? ` (${c.ageLabel})` : '';
+  return `${name}${age}`;
+}
+
+function buildCharacterBindingPrompt(chars) {
+  if (!chars.length) return '';
+  const roster = chars.map((c, index) => {
+    const details = [
+      `Reference image ${index + 1} is ${characterPromptName(c)}`,
+      c.promptPrefix ? `visual identity: ${c.promptPrefix}` : '',
+      c.refName ? `internal reference key: ${c.refName}` : '',
+    ].filter(Boolean).join('; ');
+    return `${details}.`;
+  }).join(' ');
+
+  return [
+    'Character-reference binding, follow exactly:',
+    roster,
+    'Keep each named character matched to their own reference image, face, age, outfit, and role.',
+    'Do not swap names, faces, bodies, clothing, or actions between characters.',
+    'When the scene prompt says a named character performs an action or speaks, only that named character performs it.',
+    'Do not create duplicates, clones, lookalikes, extra versions of the same character, or unnamed replacement characters.',
+    'If a selected character is not mentioned in the scene action, keep them offscreen or passive unless needed for continuity.',
+  ].join(' ');
+}
+
 function buildPayload() {
   const assets=getAvailableAssets(S.modalParentId);
   const chars=assets.filter(a=>a.type==='character'&&S.modalSelectedChars.has(a.assetId));
@@ -2295,6 +2323,8 @@ function buildPayload() {
     referenceType:'asset',
     img_id:c.pixverseImgId,
     ref_name:c.refName,
+    character_name:c.name,
+    age_label:c.ageLabel,
     refImageUrl:c.refImageUrl,
     gcsUri:c.gcsUri||'',
   }));
@@ -2305,8 +2335,10 @@ function buildPayload() {
   const storyContext = getStoryContext(S.modalParentId);
   const rawPromptParts = [
     style?.promptPrefix,
+    buildCharacterBindingPrompt(generationChars),
     lockedPrefix,
     storyContext ? 'Story so far: ' + storyContext : null,
+    'Scene action instructions must be followed literally, especially which named character performs each action.',
     userPrompt,
   ];
   const rawPrompt = rawPromptParts.filter(Boolean).join('. ');
