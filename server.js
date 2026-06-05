@@ -1674,6 +1674,7 @@ function normalizeStaticMediaPath(filePath) {
     .replace(/\\/g, "/")
     .replace(/^\/+/, "");
   if (!clean) return "";
+  if (clean === "logo.png") return "assets/logo.png";
 
   const parts = clean.split("/").filter(Boolean);
   if (!parts.length) return clean;
