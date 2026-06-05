@@ -7,6 +7,7 @@
 branchly-storage-key.json
 .checkpoint-store/
 .vercel/
+.vercel-home/
 
 # Test screenshots
 branchly_*.png
