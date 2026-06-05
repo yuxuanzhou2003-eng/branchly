@@ -1821,7 +1821,7 @@ function renderAddCharSection(charGroups) {
     return `<div class="add-char-panel">
       <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:10px">
         <div class="loading-ring" style="width:16px;height:16px;border-width:2px"></div>
-        Generating 3-angle reference… (~20s)
+        ${S.addCharMode==='variant'?'Generating age-version reference':'Generating 3-angle reference'}… (~20s)
       </div>
     </div>`;
   }
@@ -1870,13 +1870,14 @@ function renderAddCharSection(charGroups) {
 function startAddChar() { S.addCharStep='choose'; renderModal(); }
 function setAddCharStep(step) {
   S.addCharStep = step;
+  S.addCharMode = step === 'variant' ? 'variant' : 'new';
   S.addCharNewImages = null;
   S.addCharNewName = ''; S.addCharNewAge = ''; S.addCharNewDesc = ''; S.addCharNewStyle = 'cinematic realism, detailed';
   S.addCharSelectedImg = null;
   renderModal();
 }
 function cancelAddChar() {
-  S.addCharStep=null; S.addCharBaseId=null; S.addCharAge=''; S.addCharDesc='';
+  S.addCharStep=null; S.addCharMode='new'; S.addCharBaseId=null; S.addCharAge=''; S.addCharDesc='';
   S.addCharNewImages=null; S.addCharNewName=''; S.addCharNewAge=''; S.addCharNewDesc=''; S.addCharSelectedImg=null;
   renderModal();
 }
@@ -1900,18 +1901,27 @@ function slugifyId(value, fallback = 'item') {
 }
 
 async function generateVariantImages() {
-  const age = S.addCharAge.trim();
-  if (!age) { toast('Please enter an age label.'); return; }
+  if (!String(S.addCharAge || '').trim()) { toast('Please enter an age label.'); return; }
+  const age = cleanAgeLabel(S.addCharAge);
   const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
   if (!base) return;
-  const desc = S.addCharDesc.trim() || base.promptPrefix;
+  const baseName = cleanCharacterName(base.name) || 'Character';
+  const baseAge = base.ageLabel ? ` Current reference age/version: ${base.ageLabel}.` : '';
+  const desc = S.addCharDesc.trim() || base.promptPrefix || `${baseName}, same recognizable face and identity`;
+  const promptDescription = [
+    `${baseName}, ${age}`,
+    `new age/version of the existing character, preserve the same identity and facial structure`,
+    baseAge,
+    desc,
+  ].filter(Boolean).join(', ');
   S.addCharMode = 'variant';
+  S.addCharAge = age;
   S.addCharNewDesc = desc;
   S.addCharStep = 'new_loading'; renderModal();
   try {
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: desc, style: 'cinematic realism, detailed' }),
+      body: JSON.stringify({ description: promptDescription, style: 'cinematic realism, detailed' }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
@@ -1930,13 +1940,15 @@ function finalizeVariant() {
   if (!img) return;
   const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
   if (!base) return;
-  const age = S.addCharAge.trim();
+  const age = cleanAgeLabel(S.addCharAge);
   const desc = S.addCharDesc.trim() || base.promptPrefix;
-  const newId = 'asset_' + base.assetId.replace('asset_','') + '_' + age.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
+  const baseName = cleanCharacterName(base.name) || 'Character';
+  const refName = slugifyId(`${baseName}_${age}`, 'character_version');
+  const newId = `asset_${refName}_${Math.random().toString(36).slice(2, 8)}`;
 
   const asset = {
     assetId: newId, type: 'character', characterId: S.addCharBaseId,
-    name: base.name, ageLabel: age, refName: newId.replace('asset_',''),
+    name: baseName, ageLabel: age, refName,
     refImageUrl: img.dataUrl,
     promptPrefix: desc,
     negativePrompt: base.negativePrompt || 'no different face, no extra person',
@@ -1952,7 +1964,8 @@ function finalizeVariant() {
   S.modalSelectedChars.add(newId);
 
   cancelAddChar();
-  toast(`✓ Added: ${base.name} · ${age}`);
+  toast(`✓ Added: ${baseName} · ${age}`);
+  persistBranchAssetInBackground(asset, parentNode, `${baseName} · ${age}`);
 }
 
 async function generateNewCharImages() {
@@ -2046,48 +2059,6 @@ function confirmNewChar() {
   cancelAddChar();
   toast(`✓ Added: ${name} · ${age}`);
   persistBranchAssetInBackground(asset, parentNode, name);
-}
-
-function confirmAddVariant() {
-  const age = S.addCharAge.trim();
-  if (!age) { alert('Please enter an age label.'); return; }
-
-  const baseGroup = Object.values(ASSETS).filter(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
-  const base = baseGroup[0];
-  if (!base) return;
-
-  const newId = 'asset_' + (base.assetId.replace('asset_','')) + '_' + age.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
-  const desc = S.addCharDesc.trim() || base.promptPrefix;
-
-  const asset = {
-    assetId: newId,
-    type: 'character',
-    characterId: S.addCharBaseId,
-    name: base.name,
-    ageLabel: age,
-    refName: newId.replace('asset_',''),
-    pixverseImgId: base.pixverseImgId,
-    refImageUrl: base.refImageUrl,
-    promptPrefix: desc,
-    negativePrompt: base.negativePrompt || 'no different face, no extra person',
-  };
-  ASSETS[newId] = asset;
-
-  // Attach to current node so it's immediately available
-  const parentNode = S.nodes[S.modalParentId];
-  if (parentNode && !parentNode.ownAssetIds.includes(newId)) {
-    parentNode.ownAssetIds.push(newId);
-  }
-
-  // Auto-select the new version
-  const assets = getAvailableAssets(S.modalParentId);
-  assets.filter(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId)
-    .forEach(a => S.modalSelectedChars.delete(a.assetId));
-  S.modalSelectedChars.add(newId);
-
-  cancelAddChar();
-  toast(`✓ Added: ${base.name} · ${age}`);
-  persistBranchAssetInBackground(asset, parentNode, `${base.name} · ${age}`);
 }
 
 function renderModal() {
