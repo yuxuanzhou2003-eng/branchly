@@ -2176,14 +2176,9 @@ function renderModal() {
       ${renderAddCharSection(charGroups)}
     </div>
     <div>
-      <label class="form-label">Scene Environment</label>
-      <div class="scene-grid">${scenes.map(sceneBtn).join('')}${!scenes.length?'<div style="font-size:12px;color:var(--faint)">No inherited scenes</div>':''}</div>
-    </div>
-    <div>
-      <label class="form-label">Duration / Camera / Model</label>
+      <label class="form-label">Duration / Model</label>
       <div class="options-row">
         <select class="option-select" id="modal-duration"><option value="8">8 sec</option><option value="6">6 sec</option><option value="4">4 sec</option></select>
-        <select class="option-select" id="modal-motion"><option value="push_in">Push In</option><option value="pull_back">Pull Back</option><option value="pan_left">Pan Left</option><option value="static">Static</option></select>
         <select class="option-select" id="modal-model"><option value="veo-3.1-generate-001">Google Omni · Standard</option><option value="veo-3.1-fast-generate-001">Google Omni · Flash</option><option value="veo-3.0-fast-generate-001">Google Veo 3 · Fast</option><option value="veo-3.0-generate-001">Google Veo 3 · Text Only</option></select>
       </div>
     </div>`;
@@ -2290,9 +2285,8 @@ function buildPayload() {
   const style=assets.find(a=>a.type==='style');
   const promptEl=document.getElementById('modal-prompt');
   const userPrompt=promptEl?promptEl.value.trim():S.modalPrompt;
-  const duration=parseInt(document.getElementById('modal-duration')?.value||'5');
-  const camera=document.getElementById('modal-motion')?.value||'push_in';
-  const model=document.getElementById('modal-model')?.value||'v6';
+  const duration=parseInt(document.getElementById('modal-duration')?.value||'8');
+  const model=document.getElementById('modal-model')?.value||'veo-3.1-generate-001';
   const preset=PRESET_RESULTS[S.modalResultIndex];
   const generationChars=isVeo3Model(model)?chars.slice(0,VEO_REFERENCE_IMAGE_LIMIT):chars;
   const characterRefs=generationChars.map(c=>({
@@ -2303,25 +2297,12 @@ function buildPayload() {
     refImageUrl:c.refImageUrl,
     gcsUri:c.gcsUri||'',
   }));
-  const sceneRefs=scene?[{
-    type:'background',
-    referenceType:'asset',
-    img_id:scene.pixverseImgId,
-    ref_name:scene.refName,
-    refImageUrl:scene.refImageUrl,
-    gcsUri:scene.gcsUri||'',
-  }]:[];
-  const refs=(isVeo3Model(model)?characterRefs:[...characterRefs,...sceneRefs]).slice(0,3);
+  const refs=characterRefs.slice(0,3);
   const lockedPrefix=generationChars.map(c=>c.promptPrefix).filter(Boolean).join('. ');
   const negPrompt=generationChars.map(c=>c.negativePrompt).filter(Boolean)
     .concat(['no distorted face','no flicker','no sudden identity change']).join(', ');
   const storyContext = getStoryContext(S.modalParentId);
-  const scenePrompt = scene?.name ? `Setting: ${scene.name}` : null;
-  const rawPromptParts = isVeo3Model(model) ? [
-    lockedPrefix,
-    scenePrompt,
-    userPrompt,
-  ] : [
+  const rawPromptParts = [
     style?.promptPrefix,
     lockedPrefix,
     storyContext ? 'Story so far: ' + storyContext : null,
@@ -2338,7 +2319,7 @@ function buildPayload() {
     negative_prompt:isVeo3Model(model)?'':negPrompt,
     use_image_as_first_frame:false,
     model,duration,quality:CONFIG.DEFAULT_QUALITY,
-    aspect_ratio:'9:16',motion_mode:'normal',camera_movement:camera,
+    aspect_ratio:'9:16',motion_mode:'normal',
     seed:preset?.seed||Math.floor(Math.random()*1e9),
   };
 }
