@@ -1318,8 +1318,7 @@ async function serveStatic(req, res) {
   try {
     stat = await fs.promises.stat(absolute);
   } catch {
-    if (shouldServeAppFallback(req, pathname)) {
-      await serveStaticFile(res, resolveSafePath("branchly.html"));
+    if (await serveMissingStatic(req, res, pathname, requested)) {
       return;
     }
     sendJson(res, 404, { error: "File not found." });
@@ -1327,8 +1326,7 @@ async function serveStatic(req, res) {
   }
 
   if (!stat.isFile()) {
-    if (shouldServeAppFallback(req, pathname)) {
-      await serveStaticFile(res, resolveSafePath("branchly.html"));
+    if (await serveMissingStatic(req, res, pathname, requested)) {
       return;
     }
     sendJson(res, 404, { error: "File not found." });
@@ -1336,6 +1334,44 @@ async function serveStatic(req, res) {
   }
 
   await serveStaticFile(res, absolute, stat);
+}
+
+async function serveMissingStatic(req, res, pathname, requested) {
+  if (!process.env.VERCEL) return false;
+  const fallbackPath = shouldServeAppFallback(req, pathname) ? "branchly.html" : requested;
+  return serveGitHubRawStatic(req, res, fallbackPath);
+}
+
+async function serveGitHubRawStatic(req, res, filePath) {
+  if (!isAllowedRemoteStaticPath(filePath)) return false;
+
+  const remotePath = filePath
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const response = await fetch(`https://raw.githubusercontent.com/yuxuanzhou2003-eng/branchly/main/${remotePath}`);
+  if (!response.ok || !response.body) return false;
+
+  const headers = {
+    "Content-Type": mimeForPath(filePath),
+    "Cache-Control": "public, max-age=300",
+  };
+  const contentLength = response.headers.get("content-length");
+  if (contentLength) headers["Content-Length"] = contentLength;
+
+  res.writeHead(200, headers);
+  if (req.method === "HEAD") {
+    res.end();
+    return true;
+  }
+  Readable.fromWeb(response.body).pipe(res);
+  return true;
+}
+
+function isAllowedRemoteStaticPath(filePath) {
+  const clean = String(filePath || "").replace(/^\/+/, "");
+  if (!clean || clean.includes("..")) return false;
+  return [".html", ".png", ".jpg", ".jpeg", ".webp", ".mp4"].includes(path.extname(clean).toLowerCase());
 }
 
 function shouldServeAppFallback(req, pathname) {
