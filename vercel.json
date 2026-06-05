@@ -69,6 +69,10 @@
       "destination": "/branchly.html"
     },
     {
+      "source": "/logo.png",
+      "destination": "/api/index"
+    },
+    {
       "source": "/assets/:path*",
       "destination": "/api/index"
     },
