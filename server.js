@@ -1318,15 +1318,37 @@ async function serveStatic(req, res) {
   try {
     stat = await fs.promises.stat(absolute);
   } catch {
+    if (shouldServeAppFallback(req, pathname)) {
+      await serveStaticFile(res, resolveSafePath("branchly.html"));
+      return;
+    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
 
   if (!stat.isFile()) {
+    if (shouldServeAppFallback(req, pathname)) {
+      await serveStaticFile(res, resolveSafePath("branchly.html"));
+      return;
+    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
 
+  await serveStaticFile(res, absolute, stat);
+}
+
+function shouldServeAppFallback(req, pathname) {
+  if (req.method !== "GET" && req.method !== "HEAD") return false;
+  if (pathname.startsWith("/api/")) return false;
+  const ext = path.extname(pathname);
+  if (ext && ![".html"].includes(ext.toLowerCase())) return false;
+  const accept = String(req.headers?.accept || "");
+  return !accept || accept.includes("text/html") || accept.includes("*/*");
+}
+
+async function serveStaticFile(res, absolute, existingStat = null) {
+  const stat = existingStat || await fs.promises.stat(absolute);
   res.writeHead(200, {
     "Content-Type": mimeForPath(absolute),
     "Content-Length": stat.size,
