@@ -1389,24 +1389,8 @@ function getServiceAccountConfig() {
     "";
   if (base64Json) return JSON.parse(Buffer.from(base64Json, "base64").toString("utf8"));
 
-  const clientEmail = process.env.GCS_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL || "";
-  const privateKey = normalizePrivateKey(
-    process.env.GCS_PRIVATE_KEY ||
-    process.env.GOOGLE_PRIVATE_KEY ||
-    "",
-    process.env.GCS_PRIVATE_KEY_BASE64 ||
-    process.env.GOOGLE_PRIVATE_KEY_BASE64 ||
-    "",
-  );
-  if (clientEmail && privateKey) {
-    return {
-      type: "service_account",
-      project_id: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCS_PROJECT_ID || "",
-      client_email: clientEmail,
-      private_key: privateKey,
-      token_uri: "https://oauth2.googleapis.com/token",
-    };
-  }
+  const fieldBasedConfig = getServiceAccountConfigFromEnvFields();
+  if (fieldBasedConfig) return fieldBasedConfig;
 
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
     const trimmed = process.env.GOOGLE_APPLICATION_CREDENTIALS.trim();
@@ -1419,6 +1403,34 @@ function getServiceAccountConfig() {
   }
 
   return null;
+}
+
+function getServiceAccountConfigFromEnvFields() {
+  const clientEmail = process.env.GCS_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL || "";
+  const privateKey = normalizePrivateKey(
+    process.env.GCS_PRIVATE_KEY ||
+    process.env.GOOGLE_PRIVATE_KEY ||
+    "",
+    process.env.GCS_PRIVATE_KEY_BASE64 ||
+    process.env.GOOGLE_PRIVATE_KEY_BASE64 ||
+    "",
+  );
+
+  if (!clientEmail || !privateKey) return null;
+
+  return {
+    type: process.env.GCS_TYPE || "service_account",
+    project_id: process.env.GCS_PROJECT_ID || process.env.GOOGLE_CLOUD_PROJECT || "",
+    private_key_id: process.env.GCS_PRIVATE_KEY_ID || "",
+    private_key: privateKey,
+    client_email: clientEmail,
+    client_id: process.env.GCS_CLIENT_ID || "",
+    auth_uri: process.env.GCS_AUTH_URI || "https://accounts.google.com/o/oauth2/auth",
+    token_uri: process.env.GCS_TOKEN_URI || "https://oauth2.googleapis.com/token",
+    auth_provider_x509_cert_url: process.env.GCS_AUTH_PROVIDER_X509_CERT_URL || "https://www.googleapis.com/oauth2/v1/certs",
+    client_x509_cert_url: process.env.GCS_CLIENT_X509_CERT_URL || "",
+    universe_domain: process.env.GCS_UNIVERSE_DOMAIN || "googleapis.com",
+  };
 }
 
 function normalizePrivateKey(rawKey, base64Key) {
