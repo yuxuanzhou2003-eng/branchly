@@ -2,7 +2,7 @@
 
 **Branchly is an AI-native short-drama platform where every episode can split into a new monetizable storyline.**
 
-Instead of treating a drama as one fixed linear video, Branchly turns it into a living story tree. The platform starts with a seed episode, creators continue any scene into a new branch with Google Veo 3.1, viewers vote with likes and unlocks, and the highest-signal branches become the next directions of the universe.
+Instead of treating a drama as one fixed linear video, Branchly turns it into a living story tree. The platform starts with a seed episode, creators continue any scene into a new branch with Google's latest Omni model, viewers vote with likes and unlocks, and the highest-signal branches become the next directions of the universe.
 
 Branchly was built as a hackathon prototype, but the product thesis is commercial: combine short-drama monetization, creator revenue sharing, and generative video into a collaborative entertainment format that can scale across fandoms, IP universes, and serialized mobile-first content.
 
@@ -37,7 +37,7 @@ Branchly is designed around one complete creator-viewer loop that can be demonst
 2. **Explore a branch.** Each node exposes a free synopsis, video preview, creator attribution, likes, unlock state, and downstream child branches.
 3. **Signal interest.** Viewers like branches they want to survive and unlock paid episodes after the free window, giving the platform demand data beyond passive views.
 4. **Continue from any node.** A creator selects **Continue Here**, inherits the parent prompt, character references, scene context, and style constraints, then edits the next-scene prompt.
-5. **Generate with AI.** Branchly sends the continuation prompt and selected character references to Google Veo 3.1, then polls the long-running operation until the video is ready.
+5. **Generate with AI.** Branchly sends the continuation prompt and selected character references to Google's latest Omni model, then polls the long-running operation until the video is ready.
 6. **Preview and attach.** The creator previews the generated video, confirms it, and the new branch grows from the parent node.
 7. **Let the market prune the tree.** Strong branches gain visibility and unlocks. Weak branches become endangered, then dropped, while still remaining recoverable if audience interest returns.
 
@@ -54,7 +54,7 @@ Creator chooses a node to continue
     ↓
 Inherited character / scene / style assets are assembled
     ↓
-Google Veo 3.1 generates a new video branch
+Google's latest Omni model generates a new video branch
     ↓
 Viewers watch, like, and unlock
     ↓
@@ -157,13 +157,13 @@ Branchly is differentiated from ordinary UGC video tools and linear short-drama 
 
 Branchly is more than a static demo page. It includes a working end-to-end AI generation pipeline:
 
-- **Live Google Veo 3.1 video generation** through Vertex AI long-running operations.
+- **Live Google latest Omni model video generation** through Vertex AI long-running operations.
 - **Google Imagen 3 character reference generation** for front, side, and back character sheets.
 - **Visual asset inheritance** across parent and child story checkpoints.
 - **GCS-backed persistence** for checkpoint manifests, asset descriptors, and generated video outputs.
 - **Generated-video playback** from Cloud Storage, including public object playback and a local media proxy path.
-- **Safety-aware prompt shaping** for Veo generation.
-- **Reference-image guidance** using Veo `referenceImages` / `referenceType: "asset"` so selected avatars preserve character identity without being used as the first frame.
+- **Safety-aware prompt shaping** for Google latest Omni model generation.
+- **Reference-image guidance** using model asset references so selected avatars preserve character identity without being used as the first frame.
 - **Branching tree interface** with pan, zoom, node health states, paid unlocks, and creator revenue split UI.
 
 ---
@@ -185,14 +185,14 @@ Creators can open any eligible node and continue the story:
 - Write the next scene.
 - Select the character version to preserve.
 - Select a scene environment.
-- Choose duration, camera motion, and Veo model.
+- Choose duration, camera motion, and the Google latest Omni model settings.
 - Generate a video branch.
 - Preview the result.
 - Attach it into the story tree.
 
 The generation flow uses:
 
-- `veo-3.1-generate-001` as the standard default model.
+- Google's latest Omni model as the standard default video-generation model.
 - Long-running Vertex AI operations via `predictLongRunning`.
 - Polling through `fetchPredictOperation`.
 - GCS output storage under `gs://{GCS_BUCKET}/{GCS_PREFIX}/generated-videos/`.
@@ -204,9 +204,9 @@ One of the hardest problems in AI video is keeping characters consistent over mu
 - Each character has a stable `characterId`.
 - Each age / timeline version is a separate asset.
 - The creator selects the exact character version for the branch.
-- Up to three selected character avatars are sent to Veo as asset references, not as first-frame images.
+- Up to three selected character avatars are sent to the video model as asset references, not as first-frame images.
 - The prompt includes locked identity descriptors.
-- For Veo 3.x, reference inputs are capped at the model limit and scene/background images are omitted from the reference list to keep the references focused on character fusion.
+- Reference inputs are capped at the model limit and scene/background images are omitted from the reference list to keep the references focused on character fusion.
 
 This gives the model identity guidance while still allowing the generated video to start with a fresh shot.
 
@@ -257,7 +257,7 @@ Browser: branchly.html
 
 Node.js server.js
   ├── Static app server
-  ├── Google Veo proxy
+  ├── Google latest Omni model proxy
   ├── Google Imagen proxy
   ├── GCS checkpoint storage API
   ├── GCS asset descriptor API
@@ -265,7 +265,7 @@ Node.js server.js
   └── Health endpoints
 
 Google Cloud
-  ├── Vertex AI Veo 3.1
+  ├── Vertex AI Google latest Omni model
   ├── Imagen 3
   └── Cloud Storage
 ```
@@ -298,9 +298,9 @@ POST /api/generate
 The server:
 
 1. Validates the payload.
-2. Builds a Veo request.
+2. Builds a Google latest Omni model request.
 3. Converts selected avatar references into base64 image assets.
-4. Sends asset references to Veo using `referenceImages`.
+4. Sends asset references to the video model.
 5. Starts a long-running operation.
 6. Returns the operation name to the browser.
 
@@ -315,7 +315,7 @@ GET /api/status/{operationName}
 The browser polls every 5 seconds for up to 5 minutes. When complete:
 
 - If a video exists, it is shown in the preview panel.
-- If Veo filters the output, the app surfaces `raiMediaFilteredReasons`.
+- If the model filters the output, the app surfaces `raiMediaFilteredReasons`.
 - If GCS returns a generated `gcsUri`, the app converts it to a playable media URL.
 
 ### Reference Image Handling
@@ -332,7 +332,7 @@ The system supports several reference input forms:
 }
 ```
 
-The server normalizes these into the format Veo expects:
+The server normalizes these into the format the Google latest Omni model expects:
 
 ```json
 {
@@ -350,12 +350,12 @@ The server normalizes these into the format Veo expects:
 
 ### Prompt Safety And Control
 
-Veo can reject generations through Responsible AI filtering. Branchly handles that in two ways:
+The video model can reject generations through Responsible AI filtering. Branchly handles that in two ways:
 
 - It rewrites risky melodrama language into neutral workplace-drama language.
-- It displays Veo filter messages instead of silently showing an empty preview.
+- It displays model filter messages instead of silently showing an empty preview.
 
-The prompt also instructs Veo:
+The prompt also instructs the video model:
 
 - Use up to three asset references for character identity consistency.
 - Do not treat the avatar as the first frame.
@@ -384,7 +384,7 @@ Each story node can be persisted as a checkpoint:
   },
   "ownAssetIds": ["asset_lx", "asset_scene_meeting"],
   "config": {
-    "model": "veo-3.1-generate-001",
+    "model": "google-latest-omni-model",
     "duration": 8
   }
 }
@@ -450,7 +450,7 @@ GET  /api/media?gcsUri=gs://...
 
 | Layer | Technology | Why It Matters |
 |---|---|---|
-| Video generation | Google Vertex AI Veo 3.1 | High-quality AI short-drama video generation |
+| Video generation | Google latest Omni model on Vertex AI | High-quality AI short-drama video generation |
 | Image generation | Google Imagen 3 | Character sheet and avatar reference generation |
 | Storage | Google Cloud Storage | Durable checkpoint, asset, and generated-video persistence |
 | Auth | Service account JWT | Server-side Google API access without exposing secrets |
@@ -518,7 +518,7 @@ http://localhost:5173/storytree_creator.html
 VIDEO_GENERATION_PROVIDER=google
 GOOGLE_CLOUD_PROJECT=your_google_cloud_project_id
 GOOGLE_CLOUD_LOCATION=us-central1
-GOOGLE_VIDEO_MODEL=veo-3.1-generate-001
+GOOGLE_VIDEO_MODEL=google-latest-omni-model
 GOOGLE_IMAGE_MODEL=imagen-3.0-generate-002
 GOOGLE_VIDEO_RESOLUTION=720p
 GOOGLE_API_KEY=your_google_api_key_here
@@ -550,7 +550,7 @@ For public generated-video playback:
 4. Click **Continue Here** on an active node.
 5. Select a character version and scene.
 6. Write a calm workplace-drama continuation prompt.
-7. Generate with Veo 3.1.
+7. Generate with Google's latest Omni model.
 8. Preview the generated video.
 9. Click **Use and Attach** to add it as a new branch.
 10. Show the new branch in the tree.
