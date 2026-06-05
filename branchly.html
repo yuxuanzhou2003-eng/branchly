@@ -467,10 +467,11 @@ img { display: block; }
 
 /* Character picker with photos */
 .char-grid { display: flex; gap: 10px; flex-wrap: wrap; }
+.char-card { position: relative; width: 76px; }
 .char-btn {
   display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px;
   border-radius: var(--r); border: 1px solid var(--border); background: var(--surface);
-  cursor: pointer; transition: all 0.15s; width: 76px; position: relative;
+  cursor: pointer; transition: all 0.15s; width: 100%;
 }
 .char-btn:hover { border-color: var(--border2); background: var(--surface2); }
 .char-btn.selected { border-color: rgba(120,216,255,0.5); background: rgba(120,216,255,0.07); }
@@ -481,7 +482,7 @@ img { display: block; }
   display: flex; align-items: center; justify-content: center;
   opacity: 0.82; transition: opacity 0.15s, transform 0.15s; z-index: 2;
 }
-.char-btn:hover .char-delete { opacity: 1; }
+.char-card:hover .char-delete { opacity: 1; }
 .char-delete:hover { transform: scale(1.08); background: rgba(127,29,29,0.95); }
 .char-photo {
   width: 48px; height: 48px; border-radius: 50%; overflow: hidden;
@@ -882,14 +883,6 @@ const ASSETS = {
     promptPrefix:'A 32-year-old East Asian man, neat short hair, sharp navy suit, arrogant and restrained',
     negativePrompt:'no different face, no extra person, no casual clothes',
   },
-  // ── Mystery Man ──────────────────────────────────────────
-  asset_meteor: {
-    assetId:'asset_meteor', type:'character', characterId:'char_meteor',
-    name:'Mystery Man', ageLabel:'Age 45', refName:'mysteryman_45',
-    pixverseImgId: 875295976, refImageUrl: 'assets/mystery-man.png',
-    promptPrefix:'A 45-year-old East Asian man, tired eyes, dark coat, restrained and suspicious',
-    negativePrompt:'no young face, no extra person',
-  },
   asset_scene_meeting: {
     assetId:'asset_scene_meeting', type:'scene', name:'Glass Conference Room', refName:'meetingroom',
     pixverseImgId: 20001, refImageUrl: 'assets/glass-conference-room.png',
@@ -924,7 +917,8 @@ const INITIAL_NODES = {
     likes:520, impressions:12000, paidUnlocks:0,
     isProtected:false, status:'alive',
     videoUrl: vp('videos/Reborn.mp4'),
-    ownAssetIds:['asset_lx','asset_cy','asset_meteor','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
+    ownAssetIds:['asset_lx','asset_cy','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
+    removedAssetIds:['asset_meteor'],
   },
 
   // ── Branch A · 公司 (Company) ────────────────────────────
@@ -2192,11 +2186,13 @@ function renderModal() {
       const photo = c.refImageUrl
         ? `<img src="${c.refImageUrl}" alt="${c.name}" onerror="this.style.display='none'">`
         : `<span style="font-size:18px">👤</span>`;
-      return `<button class="char-btn${sel?' selected':''}" onclick="selectCharVersion('${c.characterId||c.assetId}','${c.assetId}')">
-        <span class="char-delete" title="Remove from this branch" onclick="event.stopPropagation();deleteCharacterFromBranch('${c.assetId}')">×</span>
-        <div class="char-photo">${photo}</div>
-        <div class="char-name">${versionLabel(c)}</div>
-      </button>`;
+      return `<div class="char-card">
+        <button type="button" class="char-delete" title="Remove from this branch" aria-label="Remove ${versionLabel(c)} from this branch" onclick="deleteCharacterFromBranch('${c.assetId}')">×</button>
+        <button type="button" class="char-btn${sel?' selected':''}" onclick="selectCharVersion('${c.characterId||c.assetId}','${c.assetId}')">
+          <div class="char-photo">${photo}</div>
+          <div class="char-name">${versionLabel(c)}</div>
+        </button>
+      </div>`;
     }).join('');
     return `<div class="char-group">
       <div class="char-group-name">${firstName}</div>

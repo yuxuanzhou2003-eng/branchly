@@ -922,7 +922,12 @@ async function resolveCheckpointAssets(storyId, nodeId) {
 
   const assets = [];
   for (const assetId of assetIds) {
-    assets.push(await loadAssetDescriptor(assetId));
+    try {
+      assets.push(await loadAssetDescriptor(assetId));
+    } catch (error) {
+      if (isMissingStorageError(error)) continue;
+      throw error;
+    }
   }
 
   return { chain, assets };
