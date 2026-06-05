@@ -902,11 +902,11 @@ function cleanAssetAgeLabel(value) {
 
 function normalizeVideoResource(raw) {
   if (!raw) return null;
-  if (typeof raw === "string") return { url: raw, gcsUri: "", gcsObject: "" };
+  if (typeof raw === "string") return { url: normalizeStaticMediaUrl(raw), gcsUri: "", gcsObject: "" };
   if (typeof raw !== "object") return null;
 
   return {
-    url: raw.url || raw.videoUrl || "",
+    url: normalizeStaticMediaUrl(raw.url || raw.videoUrl || ""),
     gcsUri: raw.gcsUri || raw.gcs_uri || gcsUriForObject(raw.gcsObject || raw.gcs_object || ""),
     gcsObject: raw.gcsObject || raw.gcs_object || objectNameFromGcsUri(raw.gcsUri || raw.gcs_uri || ""),
     generationId: raw.generationId || raw.videoId || "",
@@ -1052,7 +1052,7 @@ async function loadAssetDescriptor(assetId) {
 
 async function loadCheckpointManifest(storyId, nodeId) {
   try {
-    return await readStorageJson(checkpointStorageKey(storyId, nodeId));
+    return normalizeLoadedCheckpointManifest(await readStorageJson(checkpointStorageKey(storyId, nodeId)));
   } catch (error) {
     if (isMissingStorageError(error)) {
       const bundled = loadBundledCheckpoint(storyId, nodeId);
@@ -1060,6 +1060,20 @@ async function loadCheckpointManifest(storyId, nodeId) {
     }
     throw error;
   }
+}
+
+function normalizeLoadedCheckpointManifest(raw) {
+  if (!raw || typeof raw !== "object") return raw;
+  return {
+    ...raw,
+    storyId: raw.storyId || "story_001",
+    nodeId: raw.nodeId || "",
+    video: normalizeVideoResource(raw.video || raw.videoUrl),
+    ownAssetIds: Array.isArray(raw.ownAssetIds) ? raw.ownAssetIds.map(String) : [],
+    removedAssetIds: Array.isArray(raw.removedAssetIds || raw.removed_asset_ids)
+      ? (raw.removedAssetIds || raw.removed_asset_ids).map(String)
+      : [],
+  };
 }
 
 async function resolveCheckpointAssets(storyId, nodeId) {
@@ -1529,11 +1543,12 @@ function resolveStoragePath(key) {
 async function serveStatic(req, res) {
   const url = new URL(req.url, `http://localhost:${port}`);
   const pathname = decodeURIComponent(url.pathname);
-  const requested = pathname === "/"
+  let requested = pathname === "/"
     ? "branchly.html"
     : pathname === "/storytree_creator.html"
       ? "branchly.html"
       : pathname.slice(1);
+  requested = normalizeStaticMediaPath(requested);
 
   if (isStaticMediaPath(requested)) {
     if (await serveStaticFromGcs(req, res, requested)) {
@@ -1568,7 +1583,7 @@ async function serveStatic(req, res) {
 }
 
 async function readStaticBytes(filePath) {
-  const localPath = String(filePath || "").replace(/^\/+/, "");
+  const localPath = normalizeStaticMediaPath(filePath);
   if (isStaticMediaPath(localPath)) {
     if (!isGcsConfigured()) {
       throw new Error("GCS is required for static media assets.");
@@ -1590,7 +1605,7 @@ async function serveStaticFile(res, absolute, existingStat = null) {
 }
 
 async function serveStaticFromGcs(req, res, requested) {
-  const localPath = String(requested || "").replace(/^\/+/, "");
+  const localPath = normalizeStaticMediaPath(requested);
   if (!isStaticMediaPath(localPath) || !isGcsConfigured()) return false;
 
   const objectName = staticMediaStorageKey(localPath);
@@ -1631,13 +1646,77 @@ async function serveStaticFromGcs(req, res, requested) {
 }
 
 function staticMediaStorageKey(filePath) {
-  return storageKey("static", String(filePath || "").replace(/^\/+/, ""));
+  return storageKey("static", normalizeStaticMediaPath(filePath));
 }
 
 function isStaticMediaPath(filePath) {
-  const clean = String(filePath || "").replace(/^\/+/, "");
+  const clean = normalizeStaticMediaPath(filePath);
   if (!clean || clean.includes("..")) return false;
   return clean.startsWith("assets/") || clean.startsWith("videos/");
+}
+
+function normalizeStaticMediaUrl(value) {
+  const input = String(value || "").trim();
+  if (!input) return "";
+
+  try {
+    const parsed = new URL(input);
+    if (!isStaticMediaPath(parsed.pathname)) return input;
+    parsed.pathname = `/${normalizeStaticMediaPath(parsed.pathname)}`;
+    return parsed.toString();
+  } catch {
+    return normalizeStaticMediaPath(input);
+  }
+}
+
+function normalizeStaticMediaPath(filePath) {
+  const clean = safeDecodeURIComponent(String(filePath || ""))
+    .replace(/\\/g, "/")
+    .replace(/^\/+/, "");
+  if (!clean) return "";
+
+  const parts = clean.split("/").filter(Boolean);
+  if (!parts.length) return clean;
+
+  if (parts[0].toLowerCase() === "videos") parts[0] = "videos";
+  if (parts[0].toLowerCase() === "assets") parts[0] = "assets";
+
+  if (parts[0] !== "videos") return parts.join("/");
+
+  const folderAliases = {
+    "\u516c\u53f8": "company",
+    "\u7ae5\u8bdd": "fairytale",
+    "\u7ae5\u5e74": "childhood",
+  };
+  if (parts[1] && folderAliases[parts[1]]) {
+    parts[1] = folderAliases[parts[1]];
+  }
+
+  const fileAliases = {
+    "company/1 Boss's message.mp4": "company/1.1 Boss's message.mp4",
+    "company/1.1 Boss's message.mp4": "company/1.1 Boss's message.mp4",
+    "company/1.2 \u5206\u652f Tell my sis.mp4": "company/1.2 branch Tell my sis.mp4",
+    "company/1.2 \u5206\u652f 2 Coffee.mp4": "company/1.2 branch2 Coffee.mp4",
+    "fairytale/1. Into the frozen world.mp4": "fairytale/1.1. Into the frozen world.mp4",
+    "fairytale/1.1. Into the frozen world.mp4": "fairytale/1.1. Into the frozen world.mp4",
+    "fairytale/2.4(\u652f2) Ice queen competition.mp4": "fairytale/2.4(branch2) Ice queen competition.mp4",
+    "childhood/1. 8 years old again.mp4": "childhood/1.1 8 years old again.mp4",
+    "childhood/1.1 8 years old again.mp4": "childhood/1.1 8 years old again.mp4",
+  };
+  const tail = parts.slice(1).join("/");
+  if (fileAliases[tail]) {
+    return `videos/${fileAliases[tail]}`;
+  }
+
+  return parts.join("/");
+}
+
+function safeDecodeURIComponent(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function resolveSafePath(inputPath) {

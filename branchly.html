@@ -253,9 +253,9 @@
       flex-direction: column;
     }
 
-    /* ═══════════════════鈺?
+    /* ===================
    HOME PAGE
-   ═══════════════════鈺?*/
+   =================== */
     #page-home {
       overflow-y: auto;
     }
@@ -800,9 +800,9 @@
       color: var(--faint);
     }
 
-    /* ═══════════════════鈺?
+    /* ===================
    TREE PAGE
-   ═══════════════════鈺?*/
+   =================== */
     #page-tree {
       flex-direction: row;
     }
@@ -1244,9 +1244,9 @@
       color: var(--hot);
     }
 
-    /* ═══════════════════鈺?
+    /* ===================
    CREATE MODAL
-   ═══════════════════鈺?*/
+   =================== */
     #modal-create {
       position: fixed;
       inset: 0;
@@ -2185,9 +2185,9 @@
       </div>
     </nav>
 
-    <!-- ═════════════════鈺?
+    <!-- =================
        HOME PAGE
-       ═════════════════鈺?-->
+       ================= -->
     <div id="page-home" class="page active">
 
       <!-- Hero Banner -->
@@ -2241,9 +2241,9 @@
 
     </div>
 
-    <!-- ═════════════════鈺?
+    <!-- =================
        TREE PAGE
-       ═════════════════鈺?-->
+       ================= -->
     <div id="page-tree" class="page">
       <div id="tree-wrap">
         <svg id="tree-svg">
@@ -2300,9 +2300,9 @@
       </div>
     </div>
 
-    <!-- ═════════════════鈺?
+    <!-- =================
        CREATE MODAL
-       ═════════════════鈺?-->
+       ================= -->
     <div id="modal-create">
       <div class="modal-sheet">
         <div class="modal-header">
@@ -2325,9 +2325,9 @@
           <div class="modal-left" id="modal-left"></div>
           <div class="modal-right">
             <div class="phase-steps" id="phase-steps">
-              <div class="phase-step active" data-phase="draft">鈶?Write Story</div>
-              <div class="phase-step" data-phase="generating">鈶?Generating</div>
-              <div class="phase-step" data-phase="preview">鈶?Preview</div>
+              <div class="phase-step active" data-phase="draft">1 Write Story</div>
+              <div class="phase-step" data-phase="generating">2 Generating</div>
+              <div class="phase-step" data-phase="preview">3 Preview</div>
             </div>
             <div class="preview-player" id="preview-player">
               <div class="preview-empty">
@@ -2499,7 +2499,7 @@
       node_co_3_2_2: {
         nodeId: 'node_co_3_2_2', parentId: 'node_co_3_2', title: 'Coffee', storyId: 'story_001',
         synopsis: "Over a cup of coffee her sister tells her something she was never supposed to know.",
-        prompt: "A caf茅. Lin Xia and her sister sit close. The sister leans in and whispers. Lin Xia's face changes.",
+        prompt: "A cafe. Lin Xia and her sister sit close. The sister leans in and whispers. Lin Xia's face changes.",
         authorId: 'platform', authorName: 'Platform', duration: 8,
         ageDays: 15, isFreeWindow: false, unlockPrice: 1.9,
         likes: 44, impressions: 310, paidUnlocks: 12,
@@ -2967,9 +2967,9 @@
             : isLocked
               ? `<div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px">
                    <div style="font-size:14px">🔒</div>
-                   <div style="font-size:9px;color:var(--hot);letter-spacing:0.5px">楼${n.unlockPrice}</div>
+                   <div style="font-size:9px;color:var(--hot);letter-spacing:0.5px">¥${n.unlockPrice}</div>
                  </div>`
-              : `<div class="mini-play">鈻?/div>`;
+              : `<div class="mini-play">▶</div>`;
           return `<div class="card-branch-chip" onclick="event.stopPropagation();navigate('tree');setTimeout(()=>openPanel('${n.nodeId}'),400)">
               <div class="card-branch-vid" style="position:relative">
                 ${vidHtml}
@@ -2995,7 +2995,7 @@
 
         const badge = d.featured
           ? `<div class="poster-badge live">🌿 Live</div>`
-          : `<div class="poster-badge new">鉁?Soon</div>`;
+          : `<div class="poster-badge new">Soon</div>`;
 
         const totalBranches = d.nodeIds?.length || 0;
 
@@ -3003,10 +3003,10 @@
       <div class="drama-poster">
         ${bg}
         ${badge}
-        ${isNav ? `<div class="poster-play-hint"><div class="play-circle">鈻?/div></div>` : ''}
+        ${isNav ? `<div class="poster-play-hint"><div class="play-circle">▶</div></div>` : ''}
       </div>
       <div class="drama-info">
-        <div class="drama-name">銆?{d.title}銆?/div>
+        <div class="drama-name">${d.title}</div>
         <div class="drama-tagline">${d.tagline}</div>
         <div class="drama-footer">
           ${isNav ? `<div class="branch-count"><span class="n">${Object.values(S.nodes).filter(n => n.status !== 'dropped').length}</span> active branches</div>` : '<div class="branch-count">--</div>'}
@@ -3114,7 +3114,7 @@
           const overlay = isDropped
             ? `<div class="nc-overlay"><span style="font-size:20px">💀</span><span>Dropped</span></div>`
             : isPrereqLocked
-              ? `<div class="nc-overlay"><span style="font-size:14px">鉀?/span><span style="font-size:10px;color:var(--faint)">Watch previous</span></div>`
+              ? `<div class="nc-overlay"><span style="font-size:14px">🔒</span><span style="font-size:10px;color:var(--faint)">Watch previous</span></div>`
               : isPaid
                 ? `<div class="nc-overlay"><span style="font-size:16px">🔒</span><span style="color:var(--hot);font-size:11px">¥${n.unlockPrice}</span></div>`
                 : isLocked
@@ -3257,7 +3257,7 @@
         <div style="font-size:32px">🔒</div>
         <div class="lock-text" style="font-size:14px;font-weight:500;color:var(--text)">This branch is not open yet</div>
         <div class="lock-text">Be the first to unlock it</div>
-        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock 楼${node.unlockPrice}</button>
+        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock ¥${node.unlockPrice}</button>
       </div>`;
       } else if (isUnlocked) {
         videoHtml = node.videoUrl
@@ -3272,7 +3272,7 @@
         videoHtml = `<video src="${parentNode?.videoUrl || 'videos/Reborn.mp4'}" muted playsinline preload="metadata"
         style="width:100%;height:100%;object-fit:cover;filter:blur(8px) brightness(0.25)"></video>
       <div class="lock-overlay">
-        <div style="font-size:28px">鉀?/div>
+        <div style="font-size:28px">🔒</div>
         <div class="lock-text" style="font-size:13px;font-weight:500;color:var(--text)">Watch the previous episode first</div>
         <div class="lock-text" style="font-size:11px">${parentNode?.title || ''}</div>
       </div>`;
@@ -3282,7 +3282,7 @@
       <div class="lock-overlay">
         <div style="font-size:24px">🔒</div>
         <div class="lock-text">The 30-day free window has ended</div>
-        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock 楼${node.unlockPrice}</button>
+        <button class="btn sm primary" onclick="unlockNode('${nodeId}')">Unlock ¥${node.unlockPrice}</button>
       </div>`;
       }
 
@@ -3342,9 +3342,9 @@
       const creator = (price * 0.79).toFixed(1);
       const platform = (price * 0.21).toFixed(1);
       document.getElementById('pay-split-body').innerHTML = `
-    <div class="pay-row total"><span class="label">Total</span><span class="val">楼${price}</span></div>
-    <div class="pay-row"><span class="label">Creator earns</span><span class="val" style="color:var(--alive)">楼${creator}</span></div>
-    <div class="pay-row"><span class="label">Platform fee</span><span class="val">楼${platform}</span></div>`;
+    <div class="pay-row total"><span class="label">Total</span><span class="val">¥${price}</span></div>
+    <div class="pay-row"><span class="label">Creator earns</span><span class="val" style="color:var(--alive)">¥${creator}</span></div>
+    <div class="pay-row"><span class="label">Platform fee</span><span class="val">¥${platform}</span></div>`;
       const btn = document.getElementById('pay-confirm-btn');
       btn.onclick = () => { confirmUnlock(nodeId); };
       document.getElementById('payment-dialog').classList.add('open');
@@ -3471,8 +3471,8 @@
         return `<div class="add-char-panel">
       <div style="font-size:12px;color:var(--text2)">What do you want to add?</div>
       <div class="add-char-choose">
-        <button class="choose-btn" onclick="setAddCharStep('variant')">鉁?New look<br><span style="font-size:10px;color:var(--faint)">of an existing character</span></button>
-        <button class="choose-btn" onclick="setAddCharStep('new')">鉁?Brand new<br><span style="font-size:10px;color:var(--faint)">character from scratch</span></button>
+        <button class="choose-btn" onclick="setAddCharStep('variant')">+ New look<br><span style="font-size:10px;color:var(--faint)">of an existing character</span></button>
+        <button class="choose-btn" onclick="setAddCharStep('new')">+ Brand new<br><span style="font-size:10px;color:var(--faint)">character from scratch</span></button>
       </div>
       <div class="add-char-actions"><button onclick="cancelAddChar()">Cancel</button></div>
     </div>`;
@@ -3829,7 +3829,7 @@
       // Story context chain —ancestors only (parent itself is shown in "Continuing From")
       const ancestorCtx = getStoryContext(parent.parentId);
       const storyCtxHtml = ancestorCtx
-        ? `<div class="story-ctx-chain"><div class="ctx-label" style="margin-bottom:6px">📖 Story so far</div><div class="ctx-chain-text">${ancestorCtx.replace(/ (?:\u2192|鈫\?) /g, ' <span class="ctx-arrow">\u2192</span> ')}</div></div>`
+        ? `<div class="story-ctx-chain"><div class="ctx-label" style="margin-bottom:6px">📖 Story so far</div><div class="ctx-chain-text">${ancestorCtx.replace(/ \u2192 /g, ' <span class="ctx-arrow">\u2192</span> ')}</div></div>`
         : '';
 
       document.getElementById('modal-left').innerHTML = `
