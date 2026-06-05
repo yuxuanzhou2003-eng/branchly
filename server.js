@@ -1,6 +1,7 @@
 const http = require("node:http");
 const fs = require("node:fs");
 const path = require("node:path");
+const vm = require("node:vm");
 const { createSign, randomUUID } = require("node:crypto");
 const { Readable } = require("node:stream");
 const { pipeline } = require("node:stream/promises");
@@ -11,6 +12,7 @@ const apiBase = "https://app-api.pixverse.ai/openapi/v2";
 const checkpointStorageRoot = process.env.CHECKPOINT_LOCAL_DIR || ".checkpoint-store";
 const VEO_REFERENCE_IMAGE_LIMIT = 3;
 let gcsTokenCache = null;
+let bundledStoryDataCache = null;
 
 loadEnv();
 
@@ -128,6 +130,22 @@ async function routeApi(req, res) {
     const body = await readJson(req);
     const saved = await saveCheckpointBundle(body);
     sendJson(res, 200, { ok: true, ...saved });
+    return;
+  }
+
+  if (req.method === "GET" && (url.pathname === "/api/checkpoints" || url.pathname === "/api/checkpoints/")) {
+    const storyId = url.searchParams.get("storyId") || "story_001";
+    const bundled = loadBundledStoryData();
+    const nodeIds = Object.values(bundled.nodes)
+      .filter((node) => (node.storyId || "story_001") === storyId)
+      .map((node) => node.nodeId);
+    sendJson(res, 200, {
+      ok: true,
+      storyId,
+      checkpointStorage: getCheckpointStorageState(),
+      bundledFallback: true,
+      nodeIds,
+    });
     return;
   }
 
@@ -623,11 +641,10 @@ async function resolveGoogleReferenceImage(reference) {
   }
 
   const localPath = source.replace(/^\/+/, "");
-  const absolute = resolveSafePath(localPath);
-  const bytes = await fs.promises.readFile(absolute);
+  const bytes = await readStaticBytes(localPath);
   return {
     bytesBase64Encoded: bytes.toString("base64"),
-    mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type || mimeForPath(absolute)),
+    mimeType: normalizeImageMimeType(reference.mimeType || reference.mime_type || mimeForPath(localPath)),
   };
 }
 
@@ -897,16 +914,152 @@ function normalizeVideoResource(raw) {
   };
 }
 
+function loadBundledAsset(assetId) {
+  const asset = loadBundledStoryData().assets[assetId];
+  return asset ? normalizeAssetDescriptor(asset) : null;
+}
+
+function loadBundledCheckpoint(storyId, nodeId) {
+  const node = loadBundledStoryData().nodes[nodeId];
+  if (!node || (node.storyId || "story_001") !== storyId) return null;
+
+  return normalizeCheckpointManifest({
+    storyId,
+    nodeId: node.nodeId,
+    parentId: node.parentId,
+    title: node.title,
+    synopsis: node.synopsis,
+    prompt: node.prompt,
+    videoUrl: node.videoUrl,
+    config: node.config || {},
+    ownAssetIds: node.ownAssetIds || [],
+    removedAssetIds: node.removedAssetIds || [],
+    metadata: {
+      source: "bundled-story",
+      authorId: node.authorId,
+      authorName: node.authorName,
+    },
+  });
+}
+
+function loadBundledStoryData() {
+  if (bundledStoryDataCache) return bundledStoryDataCache;
+
+  const html = fs.readFileSync(path.join(root, "branchly.html"), "utf8");
+  const context = {
+    assets: null,
+    nodes: null,
+    vp: (p) => String(p).split("/").map((part, index) => index === 0 ? part : encodeURIComponent(part)).join("/"),
+  };
+
+  vm.createContext(context);
+  vm.runInContext(
+    [
+      `assets = ${extractObjectLiteralAfter(html, "const ASSETS =")};`,
+      `nodes = ${extractObjectLiteralAfter(html, "const INITIAL_NODES =")};`,
+    ].join("\n"),
+    context,
+    { timeout: 1000 },
+  );
+
+  bundledStoryDataCache = {
+    assets: context.assets || {},
+    nodes: context.nodes || {},
+  };
+  return bundledStoryDataCache;
+}
+
+function extractObjectLiteralAfter(source, marker) {
+  const markerIndex = source.indexOf(marker);
+  if (markerIndex === -1) throw new Error(`Missing bundled story marker: ${marker}`);
+
+  const start = source.indexOf("{", markerIndex);
+  if (start === -1) throw new Error(`Missing bundled story object: ${marker}`);
+
+  let depth = 0;
+  let quote = "";
+  let inLineComment = false;
+  let inBlockComment = false;
+
+  for (let i = start; i < source.length; i += 1) {
+    const ch = source[i];
+    const next = source[i + 1];
+
+    if (inLineComment) {
+      if (ch === "\n") inLineComment = false;
+      continue;
+    }
+
+    if (inBlockComment) {
+      if (ch === "*" && next === "/") {
+        inBlockComment = false;
+        i += 1;
+      }
+      continue;
+    }
+
+    if (quote) {
+      if (ch === "\\") {
+        i += 1;
+      } else if (ch === quote) {
+        quote = "";
+      }
+      continue;
+    }
+
+    if (ch === "/" && next === "/") {
+      inLineComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "/" && next === "*") {
+      inBlockComment = true;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "'" || ch === "\"" || ch === "`") {
+      quote = ch;
+      continue;
+    }
+
+    if (ch === "{") depth += 1;
+    if (ch === "}") {
+      depth -= 1;
+      if (depth === 0) return source.slice(start, i + 1);
+    }
+  }
+
+  throw new Error(`Unclosed bundled story object: ${marker}`);
+}
+
 async function saveAssetDescriptor(asset) {
   await writeStorageJson(assetStorageKey(asset.assetId), asset);
 }
 
 async function loadAssetDescriptor(assetId) {
-  return readStorageJson(assetStorageKey(assetId));
+  try {
+    return await readStorageJson(assetStorageKey(assetId));
+  } catch (error) {
+    if (isMissingStorageError(error)) {
+      const bundled = loadBundledAsset(assetId);
+      if (bundled) return bundled;
+    }
+    throw error;
+  }
 }
 
 async function loadCheckpointManifest(storyId, nodeId) {
-  return readStorageJson(checkpointStorageKey(storyId, nodeId));
+  try {
+    return await readStorageJson(checkpointStorageKey(storyId, nodeId));
+  } catch (error) {
+    if (isMissingStorageError(error)) {
+      const bundled = loadBundledCheckpoint(storyId, nodeId);
+      if (bundled) return bundled;
+    }
+    throw error;
+  }
 }
 
 async function resolveCheckpointAssets(storyId, nodeId) {
@@ -1222,11 +1375,43 @@ async function getGcsAccessToken() {
 }
 
 function getServiceAccountConfig() {
-  if (process.env.GCS_SERVICE_ACCOUNT_JSON) {
-    return JSON.parse(process.env.GCS_SERVICE_ACCOUNT_JSON);
+  const inlineJson =
+    process.env.GCS_SERVICE_ACCOUNT_JSON ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ||
+    process.env.GOOGLE_CREDENTIALS_JSON ||
+    "";
+  if (inlineJson) return JSON.parse(inlineJson);
+
+  const base64Json =
+    process.env.GCS_SERVICE_ACCOUNT_BASE64 ||
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 ||
+    process.env.GOOGLE_CREDENTIALS_BASE64 ||
+    "";
+  if (base64Json) return JSON.parse(Buffer.from(base64Json, "base64").toString("utf8"));
+
+  const clientEmail = process.env.GCS_CLIENT_EMAIL || process.env.GOOGLE_CLIENT_EMAIL || "";
+  const privateKey = normalizePrivateKey(
+    process.env.GCS_PRIVATE_KEY ||
+    process.env.GOOGLE_PRIVATE_KEY ||
+    "",
+    process.env.GCS_PRIVATE_KEY_BASE64 ||
+    process.env.GOOGLE_PRIVATE_KEY_BASE64 ||
+    "",
+  );
+  if (clientEmail && privateKey) {
+    return {
+      type: "service_account",
+      project_id: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCS_PROJECT_ID || "",
+      client_email: clientEmail,
+      private_key: privateKey,
+      token_uri: "https://oauth2.googleapis.com/token",
+    };
   }
 
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const trimmed = process.env.GOOGLE_APPLICATION_CREDENTIALS.trim();
+    if (trimmed.startsWith("{")) return JSON.parse(trimmed);
+
     const credentialPath = path.resolve(root, process.env.GOOGLE_APPLICATION_CREDENTIALS);
     if (fs.existsSync(credentialPath)) {
       return JSON.parse(fs.readFileSync(credentialPath, "utf8"));
@@ -1234,6 +1419,11 @@ function getServiceAccountConfig() {
   }
 
   return null;
+}
+
+function normalizePrivateKey(rawKey, base64Key) {
+  if (base64Key) return Buffer.from(base64Key, "base64").toString("utf8").replace(/\\n/g, "\n");
+  return rawKey ? rawKey.replace(/\\n/g, "\n") : "";
 }
 
 async function getGoogleAccessToken() {
@@ -1354,13 +1544,8 @@ async function serveMissingStatic(req, res, pathname, requested) {
 async function serveGitHubRawStatic(req, res, filePath) {
   if (!isAllowedRemoteStaticPath(filePath)) return false;
 
-  const remotePath = filePath
-    .split("/")
-    .map((part) => encodeURIComponent(part))
-    .join("/");
-  const response = await fetch(`https://raw.githubusercontent.com/yuxuanzhou2003-eng/branchly/main/${remotePath}`);
-  if (!response.ok || !response.body) return false;
-
+  const body = await fetchGitHubRawStaticBytes(filePath);
+  if (!body) return false;
   const headers = {
     "Content-Type": mimeForPath(filePath),
     "Cache-Control": path.extname(filePath).toLowerCase() === ".html"
@@ -1368,7 +1553,6 @@ async function serveGitHubRawStatic(req, res, filePath) {
       : "public, max-age=300",
   };
 
-  const body = Buffer.from(await response.arrayBuffer());
   headers["Content-Length"] = body.length;
   res.writeHead(200, headers);
   if (req.method === "HEAD") {
@@ -1377,6 +1561,37 @@ async function serveGitHubRawStatic(req, res, filePath) {
   }
   res.end(body);
   return true;
+}
+
+async function readStaticBytes(filePath) {
+  const localPath = String(filePath || "").replace(/^\/+/, "");
+  const absolute = resolveSafePath(localPath);
+
+  try {
+    return await fs.promises.readFile(absolute);
+  } catch (error) {
+    if (!process.env.VERCEL || !isMissingStorageError(error) || !isAllowedRemoteStaticPath(localPath)) {
+      throw error;
+    }
+
+    const remote = await fetchGitHubRawStaticBytes(localPath);
+    if (remote) return remote;
+    throw error;
+  }
+}
+
+async function fetchGitHubRawStaticBytes(filePath) {
+  if (!isAllowedRemoteStaticPath(filePath)) return null;
+
+  const remotePath = String(filePath || "")
+    .replace(/^\/+/, "")
+    .split("/")
+    .map((part) => encodeURIComponent(part))
+    .join("/");
+  const response = await fetch(`https://raw.githubusercontent.com/yuxuanzhou2003-eng/branchly/main/${remotePath}`);
+  if (!response.ok) return null;
+
+  return Buffer.from(await response.arrayBuffer());
 }
 
 function isAllowedRemoteStaticPath(filePath) {

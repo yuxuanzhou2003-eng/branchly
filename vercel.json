@@ -71,10 +71,6 @@
     {
       "source": "/videos/:path*",
       "destination": "/api/index"
-    },
-    {
-      "source": "/Videos/:path*",
-      "destination": "/api/index"
     }
   ]
 }
