@@ -196,8 +196,25 @@ async function routeApi(req, res) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/generate-character") {
-    const { description, style = "photorealistic portrait photography, natural studio lighting", baseImageBase64, baseMimeType = "image/png" } = await readJson(req);
+    const { description, style = "cinematic", baseImageBase64, baseMimeType = "image/png" } = await readJson(req);
     if (!description) throw new Error("description is required.");
+
+    // Style presets: control positive keywords and negative prompt
+    const stylePresets = {
+      cinematic: {
+        positive: "RAW photo, DSLR photograph, 8k uhd, photorealistic, hyperrealistic, real person, Fujifilm XT3, neutral light grey studio background, soft diffused lighting",
+        negative: "anime, cartoon, illustration, drawing, painting, CGI, 3D render, manga, sketch, watercolor, stylized",
+      },
+      anime: {
+        positive: "anime portrait, manga style, cel shaded, clean linework, vibrant colors, Japanese animation style",
+        negative: "photorealistic, photograph, real person, 3D render, CGI",
+      },
+      art: {
+        positive: "digital painting, concept art, artstation, painterly, detailed brushwork, cinematic lighting, fantasy portrait",
+        negative: "photograph, anime, manga, cartoon",
+      },
+    };
+    const preset = stylePresets[style] || stylePresets.cinematic;
 
     const angles = [
       { label: "3/4 Left",  hint: "three-quarter view, 45 degrees to the left, looking slightly past camera" },
@@ -206,7 +223,7 @@ async function routeApi(req, res) {
     ];
 
     const images = await Promise.all(angles.map(async (angle) => {
-      const prompt = `Portrait reference photo, ${angle.hint}, head and upper chest only, ${description}, ${style}, neutral light grey background, soft diffused lighting, photorealistic, single subject, no text, no watermark`;
+      const prompt = `Portrait reference, ${angle.hint}, head and upper chest only, ${description}, ${preset.positive}, single subject, no text, no watermark`;
 
       const requestBody = {
         instances: [{
@@ -219,7 +236,11 @@ async function routeApi(req, res) {
             }],
           } : {}),
         }],
-        parameters: { sampleCount: 1, aspectRatio: "3:4" },
+        parameters: {
+          sampleCount: 1,
+          aspectRatio: "3:4",
+          negativePrompt: preset.negative,
+        },
       };
 
       const apiKey = (process.env.GOOGLE_API_KEY || "").trim();

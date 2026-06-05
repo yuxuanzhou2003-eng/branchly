@@ -1117,7 +1117,7 @@ const S = {
   addCharMode: 'new',      // 'new' | 'variant'
   addCharBaseId: null,
   addCharAge: '', addCharDesc: '',
-  addCharNewName: '', addCharNewAge: '', addCharNewDesc: '', addCharNewStyle: 'cinematic realism, detailed',
+  addCharNewName: '', addCharNewAge: '', addCharNewDesc: '', addCharNewStyle: 'cinematic',
   addCharNewImages: null,  // [{label, dataUrl}]
   addCharSelectedImg: null,
 };
@@ -1829,9 +1829,9 @@ function renderAddCharSection(charGroups) {
       <textarea id="nc-desc" rows="3" placeholder="e.g. East Asian woman, shoulder-length black hair, sharp eyes, business suit" oninput="S.addCharNewDesc=this.value">${S.addCharNewDesc}</textarea>
       <label>Art Style</label>
       <select id="nc-style" onchange="S.addCharNewStyle=this.value">
-        <option value="cinematic realism, detailed" ${S.addCharNewStyle.startsWith('cinematic')?'selected':''}>Cinematic Realism</option>
-        <option value="anime style, clean lines" ${S.addCharNewStyle.startsWith('anime')?'selected':''}>Anime</option>
-        <option value="concept art, digital painting" ${S.addCharNewStyle.startsWith('concept')?'selected':''}>Concept Art</option>
+        <option value="cinematic" ${S.addCharNewStyle==='cinematic'?'selected':''}>Cinematic · Photorealistic</option>
+        <option value="anime"     ${S.addCharNewStyle==='anime'?'selected':''}>Anime · Illustration</option>
+        <option value="art"       ${S.addCharNewStyle==='art'?'selected':''}>Concept Art · Painterly</option>
       </select>
       <div class="add-char-actions">
         <button onclick="cancelAddChar()">Cancel</button>
@@ -1894,7 +1894,7 @@ function setAddCharStep(step) {
   S.addCharStep = step;
   S.addCharMode = step === 'variant' ? 'variant' : 'new';
   S.addCharNewImages = null;
-  S.addCharNewName = ''; S.addCharNewAge = ''; S.addCharNewDesc = ''; S.addCharNewStyle = 'cinematic realism, detailed';
+  S.addCharNewName = ''; S.addCharNewAge = ''; S.addCharNewDesc = ''; S.addCharNewStyle = 'cinematic';
   S.addCharSelectedImg = null;
   renderModal();
 }
@@ -1956,7 +1956,7 @@ async function generateVariantImages() {
   try {
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: promptDescription, style: 'photorealistic portrait photography, natural studio lighting', baseImageBase64, baseMimeType }),
+      body: JSON.stringify({ description: promptDescription, style: S.addCharNewStyle || 'cinematic', baseImageBase64, baseMimeType }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
@@ -2015,7 +2015,7 @@ async function generateNewCharImages() {
     const promptDescription = [name, age, desc].filter(Boolean).join(', ');
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: promptDescription, style: 'photorealistic portrait photography, natural studio lighting' }),
+      body: JSON.stringify({ description: promptDescription, style: S.addCharNewStyle || 'cinematic' }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
