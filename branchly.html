@@ -1805,7 +1805,7 @@ function closeModal() { document.getElementById('modal-create').classList.remove
 
 function renderAddCharSection(charGroups) {
   if (S.addCharStep === null) {
-    return `<button class="add-char-btn" onclick="startAddChar()">+ Add character or age version</button>`;
+    return `<button class="add-char-btn" onclick="startAddChar()">+ Add character or new look</button>`;
   }
   if (S.addCharStep === 'choose') {
     return `<div class="add-char-panel">
@@ -1841,7 +1841,7 @@ function renderAddCharSection(charGroups) {
     return `<div class="add-char-panel">
       <div style="font-size:12px;color:var(--text2);display:flex;align-items:center;gap:10px">
         <div class="loading-ring" style="width:16px;height:16px;border-width:2px"></div>
-        ${S.addCharMode==='variant'?'Generating age-version reference':'Generating 3-angle reference'}… (~20s)
+        ${S.addCharMode==='variant'?'Generating new look reference':'Generating 3-angle reference'}… (~20s)
       </div>
     </div>`;
   }
@@ -1855,7 +1855,7 @@ function renderAddCharSection(charGroups) {
       <div class="add-char-actions">
         <button onclick="S.addCharStep=S.addCharMode==='variant'?'variant':'new';renderModal()">← Regenerate</button>
         <button class="primary" onclick="S.addCharMode==='variant'?finalizeVariant():confirmNewChar()">
-          ${S.addCharMode==='variant'?'Add Version':'Add Character'}
+          ${S.addCharMode==='variant'?'Add Look':'Add Character'}
         </button>
       </div>
     </div>`;
@@ -1869,7 +1869,7 @@ function renderAddCharSection(charGroups) {
     return `<div class="add-char-panel">
       <label>Which character?</label>
       <select onchange="S.addCharBaseId=this.value;renderModal()">${charOptions}</select>
-      <label>Age label</label>
+      <label>Look label</label>
       <input id="add-age" placeholder="e.g. Age 31 · 3 Years Later" value="${S.addCharAge}" oninput="S.addCharAge=this.value"/>
       <label>Appearance notes <span style="color:var(--faint);font-weight:400">(leave blank to inherit original)</span></label>
       <textarea id="add-desc" rows="3" placeholder="e.g. slightly tired eyes, hair tied up, dark coat" oninput="S.addCharDesc=this.value">${S.addCharDesc}</textarea>
@@ -1916,7 +1916,7 @@ function slugifyId(value, fallback = 'item') {
 }
 
 async function generateVariantImages() {
-  if (!String(S.addCharAge || '').trim()) { toast('Please enter an age label.'); return; }
+  if (!String(S.addCharAge || '').trim()) { toast('Please enter a look label (e.g. "Age 60", "Battle Worn").'); return; }
   const age = cleanAgeLabel(S.addCharAge);
   const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
   if (!base) return;
@@ -1925,7 +1925,7 @@ async function generateVariantImages() {
   const desc = S.addCharDesc.trim() || base.promptPrefix || `${baseName}, same recognizable face and identity`;
   const promptDescription = [
     `${baseName}, ${age}`,
-    `new age/version of the existing character, preserve the same identity and facial structure`,
+    `new look of the existing character, preserve the same facial identity and bone structure`,
     baseAge,
     desc,
   ].filter(Boolean).join(', ');
