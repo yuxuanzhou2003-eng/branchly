@@ -470,10 +470,19 @@ img { display: block; }
 .char-btn {
   display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px;
   border-radius: var(--r); border: 1px solid var(--border); background: var(--surface);
-  cursor: pointer; transition: all 0.15s; width: 76px;
+  cursor: pointer; transition: all 0.15s; width: 76px; position: relative;
 }
 .char-btn:hover { border-color: var(--border2); background: var(--surface2); }
 .char-btn.selected { border-color: rgba(120,216,255,0.5); background: rgba(120,216,255,0.07); }
+.char-delete {
+  position: absolute; top: -6px; right: -6px; width: 18px; height: 18px;
+  border-radius: 50%; border: 1px solid rgba(248,113,113,0.45);
+  background: rgba(48,12,18,0.92); color: #fecaca; font-size: 12px;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0.82; transition: opacity 0.15s, transform 0.15s; z-index: 2;
+}
+.char-btn:hover .char-delete { opacity: 1; }
+.char-delete:hover { transform: scale(1.08); background: rgba(127,29,29,0.95); }
 .char-photo {
   width: 48px; height: 48px; border-radius: 50%; overflow: hidden;
   background: var(--bg2); border: 2px solid var(--border);
@@ -1186,11 +1195,16 @@ function isNodeAccessible(nodeId) {
 
 function getAvailableAssets(nodeId) {
   const ids = new Set();
+  const chain = [];
   let cur = S.nodes[nodeId];
   while (cur) {
-    (cur.ownAssetIds||[]).forEach(id => ids.add(id));
+    chain.unshift(cur);
     cur = cur.parentId ? S.nodes[cur.parentId] : null;
   }
+  chain.forEach(node => {
+    (node.ownAssetIds||[]).forEach(id => ids.add(id));
+    (node.removedAssetIds||[]).forEach(id => ids.delete(id));
+  });
   return [...ids].map(id => ASSETS[id]).filter(Boolean);
 }
 
@@ -1209,6 +1223,7 @@ function mergeStoredCheckpoint(checkpoint) {
     ...(node.ownAssetIds || []),
     ...(checkpoint.ownAssetIds || []),
   ])];
+  node.removedAssetIds = [...new Set(checkpoint.removedAssetIds || checkpoint.removed_asset_ids || node.removedAssetIds || [])];
   if (checkpoint.prompt) node.prompt = checkpoint.prompt;
   if (checkpoint.synopsis) node.synopsis = checkpoint.synopsis;
   if (checkpoint.video?.url) node.videoUrl = checkpoint.video.url;
@@ -1801,6 +1816,27 @@ function selectCharVersion(characterId, assetId) {
   renderModal();
 }
 
+function deleteCharacterFromBranch(assetId) {
+  const node = S.nodes[S.modalParentId];
+  const asset = ASSETS[assetId];
+  if (!node || !asset) return;
+
+  const label = characterPromptName(asset);
+  if (!confirm(`Remove ${label} from this branch? Other branches can still use the asset.`)) return;
+
+  node.ownAssetIds = (node.ownAssetIds || []).filter(id => id !== assetId);
+  node.removedAssetIds = [...new Set([...(node.removedAssetIds || []), assetId])];
+  S.modalSelectedChars.delete(assetId);
+
+  if (S.addCharBaseId === (asset.characterId || asset.assetId)) {
+    const remainingChar = getAvailableAssets(S.modalParentId).find(a => a.type === 'character');
+    S.addCharBaseId = remainingChar?.characterId || remainingChar?.assetId || null;
+  }
+
+  renderModal();
+  persistBranchCheckpointInBackground(node, `removal of ${label}`);
+}
+
 function closeModal() { document.getElementById('modal-create').classList.remove('open'); }
 
 function renderAddCharSection(charGroups) {
@@ -2033,6 +2069,7 @@ function checkpointFromNode(node) {
     videoUrl: node.videoUrl || '',
     config: node.config || {},
     ownAssetIds: [...new Set(node.ownAssetIds || [])],
+    removedAssetIds: [...new Set(node.removedAssetIds || [])],
     metadata: {
       authorId: node.authorId || '',
       authorName: node.authorName || '',
@@ -2054,6 +2091,24 @@ async function persistBranchAsset(asset, node) {
   const data = await res.json();
   if (!res.ok || data.error) throw new Error(data.error || 'Asset storage save failed.');
   return data;
+}
+
+async function persistBranchCheckpoint(node) {
+  if (!node) throw new Error('Missing branch node.');
+  const res = await fetch('/api/checkpoints', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ checkpoint: checkpointFromNode(node), assets: [] }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Checkpoint storage save failed.');
+  return data;
+}
+
+function persistBranchCheckpointInBackground(node, label) {
+  persistBranchCheckpoint(node)
+    .then(() => toast(`✓ Saved ${label} to branch storage.`))
+    .catch(error => toast(`Updated locally, but branch storage save failed: ${error.message}`, 3200));
 }
 
 function persistBranchAssetInBackground(asset, node, label) {
@@ -2123,6 +2178,7 @@ function renderModal() {
         ? `<img src="${c.refImageUrl}" alt="${c.name}" onerror="this.style.display='none'">`
         : `<span style="font-size:18px">👤</span>`;
       return `<button class="char-btn${sel?' selected':''}" onclick="selectCharVersion('${c.characterId||c.assetId}','${c.assetId}')">
+        <span class="char-delete" title="Remove from this branch" onclick="event.stopPropagation();deleteCharacterFromBranch('${c.assetId}')">×</span>
         <div class="char-photo">${photo}</div>
         <div class="char-name">${versionLabel(c)}</div>
       </button>`;

@@ -782,6 +782,7 @@ async function saveCheckpointBundle(body) {
 
   for (const asset of assets) {
     ownAssetIds.add(asset.assetId);
+    checkpoint.removedAssetIds = checkpoint.removedAssetIds.filter((assetId) => assetId !== asset.assetId);
     await saveAssetDescriptor(asset);
   }
 
@@ -817,6 +818,9 @@ function normalizeCheckpointManifest(raw) {
     video: normalizeVideoResource(raw.video || raw.videoUrl),
     config: raw.config && typeof raw.config === "object" ? raw.config : {},
     ownAssetIds: Array.isArray(raw.ownAssetIds) ? raw.ownAssetIds.map(String) : [],
+    removedAssetIds: Array.isArray(raw.removedAssetIds || raw.removed_asset_ids)
+      ? (raw.removedAssetIds || raw.removed_asset_ids).map(String)
+      : [],
     createdAt: raw.createdAt || now,
     updatedAt: now,
     metadata: raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
@@ -900,9 +904,14 @@ async function resolveCheckpointAssets(storyId, nodeId) {
     chain.unshift({
       nodeId: checkpoint.nodeId,
       ownAssetIds: checkpoint.ownAssetIds,
+      removedAssetIds: checkpoint.removedAssetIds || [],
     });
-    checkpoint.ownAssetIds.forEach((assetId) => assetIds.add(assetId));
     currentId = checkpoint.parentId;
+  }
+
+  for (const item of chain) {
+    item.ownAssetIds.forEach((assetId) => assetIds.add(assetId));
+    item.removedAssetIds.forEach((assetId) => assetIds.delete(assetId));
   }
 
   const assets = [];
