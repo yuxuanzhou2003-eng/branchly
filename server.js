@@ -128,8 +128,18 @@ async function routeApi(req, res) {
     const nodeId = decodeURIComponent(url.pathname.replace("/api/checkpoints/", ""));
     const storyId = url.searchParams.get("storyId") || "story_001";
     const includeAssets = url.searchParams.get("includeAssets") !== "false";
-    const checkpoint = await loadCheckpointManifest(storyId, nodeId);
-    const assets = includeAssets ? await resolveCheckpointAssets(storyId, nodeId) : null;
+    let checkpoint;
+    let assets = null;
+    try {
+      checkpoint = await loadCheckpointManifest(storyId, nodeId);
+      assets = includeAssets ? await resolveCheckpointAssets(storyId, nodeId) : null;
+    } catch (error) {
+      if (isMissingStorageError(error)) {
+        sendJson(res, 404, { error: "Checkpoint not found." });
+        return;
+      }
+      throw error;
+    }
     sendJson(res, 200, {
       ok: true,
       checkpoint,
@@ -765,6 +775,8 @@ function normalizeAssetDescriptor(raw) {
     assetId,
     type,
     name: raw.name || assetId,
+    characterId: raw.characterId || raw.character_id || "",
+    ageLabel: raw.ageLabel || raw.age_label || "",
     refName: raw.refName || assetId,
     pixverseImgId: raw.pixverseImgId || raw.img_id || null,
     refImageUrl,
@@ -1045,6 +1057,10 @@ async function ensureGcsOk(response, action) {
   if (response.ok) return;
   const text = await response.text();
   throw new Error(`GCS ${action} failed (${response.status}): ${text}`);
+}
+
+function isMissingStorageError(error) {
+  return error?.code === "ENOENT" || /\b(404|not found)\b/i.test(error?.message || "");
 }
 
 async function getGcsAccessToken() {

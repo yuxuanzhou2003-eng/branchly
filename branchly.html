@@ -1191,6 +1191,52 @@ function getAvailableAssets(nodeId) {
   return [...ids].map(id => ASSETS[id]).filter(Boolean);
 }
 
+function mergeStoredAsset(asset) {
+  if (!asset?.assetId) return;
+  ASSETS[asset.assetId] = {
+    ...(ASSETS[asset.assetId] || {}),
+    ...asset,
+  };
+}
+
+function mergeStoredCheckpoint(checkpoint) {
+  if (!checkpoint?.nodeId || !S.nodes[checkpoint.nodeId]) return;
+  const node = S.nodes[checkpoint.nodeId];
+  node.ownAssetIds = [...new Set([
+    ...(node.ownAssetIds || []),
+    ...(checkpoint.ownAssetIds || []),
+  ])];
+  if (checkpoint.prompt) node.prompt = checkpoint.prompt;
+  if (checkpoint.synopsis) node.synopsis = checkpoint.synopsis;
+  if (checkpoint.video?.url) node.videoUrl = checkpoint.video.url;
+  node.config = {
+    ...(node.config || {}),
+    ...(checkpoint.config || {}),
+  };
+}
+
+async function hydrateStoredCheckpoints() {
+  const nodeIds = Object.keys(S.nodes);
+  const results = await Promise.allSettled(nodeIds.map(async nodeId => {
+    const storyId = S.nodes[nodeId].storyId || 'story_001';
+    const res = await fetch(`/api/checkpoints/${encodeURIComponent(nodeId)}?storyId=${encodeURIComponent(storyId)}&includeAssets=false`);
+    if (res.status === 404 || !res.ok) return;
+    const data = await res.json();
+    const ownAssetIds = data.checkpoint?.ownAssetIds || [];
+    mergeStoredCheckpoint(data.checkpoint);
+    await Promise.allSettled(ownAssetIds
+      .filter(assetId => !ASSETS[assetId])
+      .map(async assetId => {
+        const assetRes = await fetch(`/api/assets/${encodeURIComponent(assetId)}`);
+        if (!assetRes.ok) return;
+        const assetData = await assetRes.json();
+        mergeStoredAsset(assetData.asset);
+      }));
+  }));
+  const loaded = results.filter(r => r.status === 'fulfilled').length;
+  if (loaded) console.info(`Hydrated ${loaded} checkpoint lookups from storage.`);
+}
+
 function nodeColor(node) {
   if (node.status === 'dropped')    return { fill:'#4b5563', glow:'none', filterId:'' };
   if (node.status === 'endangered') return { fill:'#f59e0b', glow:'var(--danger-g)', filterId:'glow-dngr' };
@@ -1874,6 +1920,46 @@ async function generateNewCharImages() {
   renderModal();
 }
 
+function checkpointFromNode(node) {
+  return {
+    storyId: node.storyId || 'story_001',
+    nodeId: node.nodeId,
+    parentId: node.parentId || null,
+    title: node.title || '',
+    synopsis: node.synopsis || '',
+    prompt: node.prompt || '',
+    videoUrl: node.videoUrl || '',
+    config: node.config || {},
+    ownAssetIds: [...new Set(node.ownAssetIds || [])],
+    metadata: {
+      authorId: node.authorId || '',
+      authorName: node.authorName || '',
+      status: node.status || '',
+    },
+  };
+}
+
+async function persistBranchAsset(asset, node) {
+  if (!asset || !node) throw new Error('Missing asset or branch node.');
+  const res = await fetch('/api/checkpoints', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      checkpoint: checkpointFromNode(node),
+      assets: [asset],
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok || data.error) throw new Error(data.error || 'Asset storage save failed.');
+  return data;
+}
+
+function persistBranchAssetInBackground(asset, node, label) {
+  persistBranchAsset(asset, node)
+    .then(() => toast(`✓ Saved ${label} to branch asset storage.`))
+    .catch(error => toast(`Added locally, but asset storage save failed: ${error.message}`, 3200));
+}
+
 function confirmNewChar() {
   const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
   if (!img) return;
@@ -1883,18 +1969,20 @@ function confirmNewChar() {
   const newId = 'asset_' + refName.slice(0, 20);
   const charId = 'char_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_');
 
-  ASSETS[newId] = {
+  const asset = {
     assetId: newId, type: 'character', characterId: charId,
     name, ageLabel: age, refName,
     refImageUrl: img.dataUrl,
     promptPrefix: S.addCharNewDesc.trim(),
     negativePrompt: 'no different face, no extra person',
   };
+  ASSETS[newId] = asset;
   const parentNode = S.nodes[S.modalParentId];
   if (parentNode && !parentNode.ownAssetIds.includes(newId)) parentNode.ownAssetIds.push(newId);
   S.modalSelectedChars.add(newId);
   cancelAddChar();
   toast(`✓ Added: ${name} · ${age}`);
+  persistBranchAssetInBackground(asset, parentNode, name);
 }
 
 function confirmAddVariant() {
@@ -1908,7 +1996,7 @@ function confirmAddVariant() {
   const newId = 'asset_' + (base.assetId.replace('asset_','')) + '_' + age.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
   const desc = S.addCharDesc.trim() || base.promptPrefix;
 
-  ASSETS[newId] = {
+  const asset = {
     assetId: newId,
     type: 'character',
     characterId: S.addCharBaseId,
@@ -1920,6 +2008,7 @@ function confirmAddVariant() {
     promptPrefix: desc,
     negativePrompt: base.negativePrompt || 'no different face, no extra person',
   };
+  ASSETS[newId] = asset;
 
   // Attach to current node so it's immediately available
   const parentNode = S.nodes[S.modalParentId];
@@ -1935,6 +2024,7 @@ function confirmAddVariant() {
 
   cancelAddChar();
   toast(`✓ Added: ${base.name} · ${age}`);
+  persistBranchAssetInBackground(asset, parentNode, `${base.name} · ${age}`);
 }
 
 function renderModal() {
@@ -2284,7 +2374,12 @@ function publishBranch() {
 /* ──────────────────────────────────────────────────────────
    INIT
    ────────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    await hydrateStoredCheckpoints();
+  } catch (error) {
+    console.warn('Checkpoint hydration skipped:', error);
+  }
   renderHome();
   document.getElementById('modal-create').addEventListener('input', e => {
     if (e.target.id==='modal-prompt') S.modalPrompt=e.target.value;
