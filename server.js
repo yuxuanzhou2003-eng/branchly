@@ -202,8 +202,8 @@ async function routeApi(req, res) {
     // Style presets: control positive keywords and negative prompt
     const stylePresets = {
       cinematic: {
-        positive: "RAW photo, DSLR photograph, 8k uhd, photorealistic, hyperrealistic, real person, Fujifilm XT3, neutral light grey studio background, soft diffused lighting",
-        negative: "anime, cartoon, illustration, drawing, painting, CGI, 3D render, manga, sketch, watercolor, stylized",
+        positive: "photograph, RAW photo, DSLR, 8k uhd, photorealistic, hyperrealistic, real human face, Fujifilm XT3, studio portrait, neutral grey background, professional lighting",
+        negative: "anime, cartoon, manga, illustration, drawing, painting, CGI, 3D render, sketch, watercolor, stylized, animated, game character",
       },
       anime: {
         positive: "anime portrait, manga style, cel shaded, clean linework, vibrant colors, Japanese animation style",
@@ -223,19 +223,11 @@ async function routeApi(req, res) {
     ];
 
     const images = await Promise.all(angles.map(async (angle) => {
-      const prompt = `Portrait reference, ${angle.hint}, head and upper chest only, ${description}, ${preset.positive}, single subject, no text, no watermark`;
+      const stylePrefix = style === "cinematic" ? "Photograph: " : style === "anime" ? "Anime illustration: " : "Digital painting: ";
+      const prompt = `${stylePrefix}portrait reference, ${angle.hint}, head and upper chest only, ${description}, ${preset.positive}, single subject, no text, no watermark`;
 
       const requestBody = {
-        instances: [{
-          prompt,
-          ...(baseImageBase64 ? {
-            referenceImages: [{
-              referenceType: "SUBJECT",
-              referenceId: 0,
-              referenceImage: { bytesBase64Encoded: baseImageBase64, mimeType: baseMimeType },
-            }],
-          } : {}),
-        }],
+        instances: [{ prompt }],
         parameters: {
           sampleCount: 1,
           aspectRatio: "3:4",
@@ -243,16 +235,15 @@ async function routeApi(req, res) {
         },
       };
 
-      const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
-      const model = getGoogleImageModel();
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
-
-      const resp = await fetch(endpoint, {
+      const resp = await fetch(googleImageEndpoint(), {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          ...(await getGoogleAuthHeaders()),
+        },
         body: JSON.stringify(requestBody),
       });
-      const data = await resp.json();
+      const data = await readGoogleJson(resp, `Imagen character (${angle.label})`);
       if (data.error) throw new Error(`Imagen error (${angle.label}): ${data.error.message}`);
       const b64 = data.predictions?.[0]?.bytesBase64Encoded;
       if (!b64) throw new Error("No image returned for " + angle.label);
