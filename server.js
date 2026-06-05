@@ -8,6 +8,7 @@ const root = __dirname;
 const port = Number(process.env.PORT || 5173);
 const apiBase = "https://app-api.pixverse.ai/openapi/v2";
 const checkpointStorageRoot = process.env.CHECKPOINT_LOCAL_DIR || ".checkpoint-store";
+const VEO_REFERENCE_IMAGE_LIMIT = 3;
 let gcsTokenCache = null;
 
 loadEnv();
@@ -468,7 +469,7 @@ async function buildGoogleVideoRequest(payload, model) {
 async function buildGoogleReferenceImages(references) {
   const normalized = [];
 
-  for (const reference of references.slice(0, 3)) {
+  for (const reference of references.slice(0, VEO_REFERENCE_IMAGE_LIMIT)) {
     const image = await resolveGoogleReferenceImage(reference);
     if (!image) continue;
 

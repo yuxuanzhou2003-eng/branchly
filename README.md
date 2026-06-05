@@ -116,9 +116,9 @@ One of the hardest problems in AI video is keeping characters consistent over mu
 - Each character has a stable `characterId`.
 - Each age / timeline version is a separate asset.
 - The creator selects the exact character version for the branch.
-- The selected avatar is sent to Veo as an asset reference, not as a first-frame image.
+- Up to three selected character avatars are sent to Veo as asset references, not as first-frame images.
 - The prompt includes locked identity descriptors.
-- For Veo 3.x, only the primary selected character is sent by default to avoid duplicate-person artifacts.
+- For Veo 3.x, reference inputs are capped at the model limit and scene/background images are omitted from the reference list to keep the references focused on character fusion.
 
 This gives the model identity guidance while still allowing the generated video to start with a fresh shot.
 
@@ -269,7 +269,7 @@ Veo can reject generations through Responsible AI filtering. Branchly handles th
 
 The prompt also instructs Veo:
 
-- Use asset references for identity consistency.
+- Use up to three asset references for character identity consistency.
 - Do not treat the avatar as the first frame.
 - Begin with a fresh moving shot and natural camera motion.
 

@@ -848,6 +848,7 @@ const CONFIG = {
   DEFAULT_QUALITY: '720p',
   DEFAULT_MODEL: 'veo-3.1-generate-001',
 };
+const VEO_REFERENCE_IMAGE_LIMIT = 3;
 
 /* ──────────────────────────────────────────────────────────
    ASSETS
@@ -1717,8 +1718,17 @@ function openCreateModal(parentId) {
   const assets=getAvailableAssets(parentId);
   const chars=assets.filter(a=>a.type==='character');
   const scenes=assets.filter(a=>a.type==='scene');
-  // Veo 3 image-to-video works best with one primary subject image.
-  S.modalSelectedChars = new Set(chars[0] ? [chars[0].assetId] : []);
+  // Veo reference-image mode supports up to 3 selected character avatars.
+  const defaultChars = new Set();
+  const seenCharGroups = new Set();
+  chars.forEach(c => {
+    const gid = c.characterId || c.assetId;
+    if (defaultChars.size < VEO_REFERENCE_IMAGE_LIMIT && !seenCharGroups.has(gid)) {
+      seenCharGroups.add(gid);
+      defaultChars.add(c.assetId);
+    }
+  });
+  S.modalSelectedChars = defaultChars;
   S.modalSelectedScene = scenes[0]?.assetId||'';
   S.addCharStep = null; S.addCharBaseId = chars[0]?.characterId||chars[0]?.assetId||null;
   S.addCharAge = ''; S.addCharDesc = '';
@@ -1731,6 +1741,11 @@ function selectCharVersion(characterId, assetId) {
   const assets = getAvailableAssets(S.modalParentId);
   assets.filter(a => a.type==='character' && (a.characterId||a.assetId)===characterId)
     .forEach(a => S.modalSelectedChars.delete(a.assetId));
+  if (isVeo3Model(document.getElementById('modal-model')?.value||CONFIG.DEFAULT_MODEL) && S.modalSelectedChars.size >= VEO_REFERENCE_IMAGE_LIMIT) {
+    toast(`Veo supports up to ${VEO_REFERENCE_IMAGE_LIMIT} character reference images.`);
+    renderModal();
+    return;
+  }
   S.modalSelectedChars.add(assetId);
   renderModal();
 }
@@ -1988,7 +2003,7 @@ function renderModal() {
           <rect x="2" y="5" width="8" height="6" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
           <path d="M4 5V3.5a2 2 0 014 0V5" stroke="currentColor" stroke-width="1.2"/>
         </svg>
-        Character identity prefixes are locked. The system automatically assembles video references to preserve visual lineage.
+        Character identity prefixes are locked. The system sends up to three selected avatar images as Veo asset references for character fusion.
       </div>
     </div>
     <div>
@@ -2115,7 +2130,7 @@ function buildPayload() {
   const camera=document.getElementById('modal-motion')?.value||'push_in';
   const model=document.getElementById('modal-model')?.value||'v6';
   const preset=PRESET_RESULTS[S.modalResultIndex];
-  const generationChars=isVeo3Model(model)?chars.slice(0,1):chars;
+  const generationChars=isVeo3Model(model)?chars.slice(0,VEO_REFERENCE_IMAGE_LIMIT):chars;
   const characterRefs=generationChars.map(c=>({
     type:'subject',
     referenceType:'asset',
