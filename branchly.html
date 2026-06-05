@@ -1666,10 +1666,7 @@ function openPanel(nodeId) {
 
   document.getElementById('panel-body').innerHTML = `
     <div class="video-box">${videoHtml}</div>
-    <div class="synopsis-box">
-      <div class="section-label">Synopsis (always free)</div>
-      <div class="synopsis-text">${node.synopsis}</div>
-    </div>
+
     <div class="stats-row">
       <div class="stat-box"><div class="stat-val" style="color:${col.fill}">${node.likes}</div><div class="stat-lab">Likes</div></div>
       <div class="stat-box"><div class="stat-val">${node.impressions}</div><div class="stat-lab">Views</div></div>
