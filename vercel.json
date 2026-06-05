@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/index.js": {
-      "includeFiles": "{server.js,branchly.html,index.html,logo.png,assets/**,videos/**}"
+      "includeFiles": "**/*"
     }
   },
   "headers": [
@@ -67,6 +67,10 @@
     {
       "source": "/storytree_creator.html",
       "destination": "/branchly.html"
+    },
+    {
+      "source": "/assets/:path*",
+      "destination": "/api/index"
     },
     {
       "source": "/videos/:path*",
