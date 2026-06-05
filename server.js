@@ -196,21 +196,43 @@ async function routeApi(req, res) {
   }
 
   if (req.method === "POST" && url.pathname === "/api/generate-character") {
-    const { description, style = "cinematic realism, detailed" } = await readJson(req);
+    const { description, style = "photorealistic portrait photography, natural studio lighting", baseImageBase64, baseMimeType = "image/png" } = await readJson(req);
     if (!description) throw new Error("description is required.");
 
     const angles = [
-      { label: "Front",   hint: "front view, facing directly toward the camera, symmetrical pose" },
-      { label: "Side",    hint: "side profile view, 90 degrees, looking left" },
-      { label: "Back",    hint: "back view, facing completely away from camera" },
+      { label: "3/4 Left",  hint: "three-quarter view, 45 degrees to the left, looking slightly past camera" },
+      { label: "Front",     hint: "front facing, looking directly at camera, symmetrical" },
+      { label: "3/4 Right", hint: "three-quarter view, 45 degrees to the right, looking slightly past camera" },
     ];
 
     const images = await Promise.all(angles.map(async (angle) => {
-      const prompt = `Character design reference sheet, ${angle.hint}, full body, ${description}, ${style}, pure white background, single character, no text, no watermark, clean professional illustration`;
-      const data = await googleGenerateImage(prompt, {
-        sampleCount: 1,
-        aspectRatio: "3:4",
+      const prompt = `Portrait reference photo, ${angle.hint}, head and upper chest only, ${description}, ${style}, neutral light grey background, soft diffused lighting, photorealistic, single subject, no text, no watermark`;
+
+      const requestBody = {
+        instances: [{
+          prompt,
+          ...(baseImageBase64 ? {
+            referenceImages: [{
+              referenceType: "SUBJECT",
+              referenceId: 0,
+              referenceImage: { bytesBase64Encoded: baseImageBase64, mimeType: baseMimeType },
+            }],
+          } : {}),
+        }],
+        parameters: { sampleCount: 1, aspectRatio: "3:4" },
+      };
+
+      const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
+      const model = getGoogleImageModel();
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:predict?key=${apiKey}`;
+
+      const resp = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
       });
+      const data = await resp.json();
+      if (data.error) throw new Error(`Imagen error (${angle.label}): ${data.error.message}`);
       const b64 = data.predictions?.[0]?.bytesBase64Encoded;
       if (!b64) throw new Error("No image returned for " + angle.label);
       return { label: angle.label, dataUrl: `data:image/png;base64,${b64}` };

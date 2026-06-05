@@ -344,10 +344,12 @@ img { display: block; }
 
 /* ── Node Panel ──────────────────────────────────────────── */
 #node-panel {
-  width: 520px; flex-shrink: 0; border-left: 1px solid var(--border);
+  position: absolute; top: 0; right: 0; bottom: 0;
+  width: 520px; border-left: 1px solid var(--border);
   background: rgba(4,6,15,0.92); backdrop-filter: blur(20px);
   display: flex; flex-direction: column; overflow: hidden;
   transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+  z-index: 10;
 }
 #node-panel.open { transform: translateX(0); }
 .panel-header { padding: 20px 20px 14px; border-bottom: 1px solid var(--border); position: relative; }
@@ -1938,10 +1940,23 @@ async function generateVariantImages() {
   S.addCharAge = age;
   S.addCharNewDesc = desc;
   S.addCharStep = 'new_loading'; renderModal();
+
+  // Read base character's reference image and send as input to Imagen
+  let baseImageBase64 = null, baseMimeType = 'image/png';
+  if (base.refImageUrl) {
+    try {
+      const imgResp = await fetch(base.refImageUrl);
+      const blob = await imgResp.blob();
+      baseMimeType = blob.type || 'image/png';
+      const buf = await blob.arrayBuffer();
+      baseImageBase64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    } catch(e) { /* fall back to text-only if image fetch fails */ }
+  }
+
   try {
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: promptDescription, style: 'cinematic realism, detailed' }),
+      body: JSON.stringify({ description: promptDescription, style: 'photorealistic portrait photography, natural studio lighting', baseImageBase64, baseMimeType }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
@@ -2000,7 +2015,7 @@ async function generateNewCharImages() {
     const promptDescription = [name, age, desc].filter(Boolean).join(', ');
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: promptDescription, style: S.addCharNewStyle }),
+      body: JSON.stringify({ description: promptDescription, style: 'photorealistic portrait photography, natural studio lighting' }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
