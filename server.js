@@ -1380,19 +1380,29 @@ function getServiceAccountConfig() {
     process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ||
     process.env.GOOGLE_CREDENTIALS_JSON ||
     "";
-  if (inlineJson) return JSON.parse(inlineJson);
+  if (inlineJson) return normalizeServiceAccountConfig(JSON.parse(inlineJson));
 
   const base64Json =
     process.env.GCS_SERVICE_ACCOUNT_BASE64 ||
     process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 ||
     process.env.GOOGLE_CREDENTIALS_BASE64 ||
     "";
-  if (base64Json) return JSON.parse(Buffer.from(base64Json, "base64").toString("utf8"));
+  if (base64Json) {
+    return normalizeServiceAccountConfig(JSON.parse(Buffer.from(base64Json, "base64").toString("utf8")));
+  }
 
   const fieldBasedConfig = getServiceAccountConfigFromEnvFields();
   if (fieldBasedConfig) return fieldBasedConfig;
 
   return null;
+}
+
+function normalizeServiceAccountConfig(config) {
+  if (!config || typeof config !== "object") return null;
+  return {
+    ...config,
+    private_key: normalizePrivateKey(config.private_key || "", config.private_key_base64 || ""),
+  };
 }
 
 function getServiceAccountConfigFromEnvFields() {
@@ -1424,8 +1434,19 @@ function getServiceAccountConfigFromEnvFields() {
 }
 
 function normalizePrivateKey(rawKey, base64Key) {
-  if (base64Key) return Buffer.from(base64Key, "base64").toString("utf8").replace(/\\n/g, "\n");
-  return rawKey ? rawKey.replace(/\\n/g, "\n") : "";
+  let key = base64Key
+    ? Buffer.from(String(base64Key).trim(), "base64").toString("utf8")
+    : String(rawKey || "");
+
+  key = key.trim();
+  if (
+    (key.startsWith("\"") && key.endsWith("\"")) ||
+    (key.startsWith("'") && key.endsWith("'"))
+  ) {
+    key = key.slice(1, -1);
+  }
+
+  return key.replace(/\\n/g, "\n").trim();
 }
 
 async function getGoogleAccessToken() {
