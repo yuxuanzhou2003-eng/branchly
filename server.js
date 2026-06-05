@@ -225,10 +225,9 @@ async function routeApi(req, res) {
     const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
     if (!apiKey) throw new Error("Missing GOOGLE_API_KEY for character generation.");
 
-    const parts = [{ text: prompt }];
+    const requestParts = [{ text: prompt }];
     if (baseImageBase64) {
-      // Prepend reference image so Gemini sees the face first
-      parts.unshift({ inlineData: { mimeType: baseMimeType, data: baseImageBase64 } });
+      requestParts.unshift({ inlineData: { mimeType: baseMimeType, data: baseImageBase64 } });
     }
 
     const geminiResp = await fetch(
@@ -237,7 +236,7 @@ async function routeApi(req, res) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts }],
+          contents: [{ parts: requestParts }],
           generationConfig: { responseModalities: ["IMAGE"] },
         }),
       }
