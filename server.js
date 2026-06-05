@@ -25,7 +25,7 @@ const mimeTypes = {
   ".mp4": "video/mp4",
 };
 
-const server = http.createServer(async (req, res) => {
+async function handleRequest(req, res) {
   try {
     if (req.url.startsWith("/api/")) {
       await routeApi(req, res);
@@ -38,16 +38,22 @@ const server = http.createServer(async (req, res) => {
       error: error.message || "Internal server error",
     });
   }
-});
+}
 
-server.listen(port, () => {
-  console.log(`Branchly: http://localhost:${port}`);
-  console.log(
-    getVideoProvider() === "google"
-      ? `Video generation provider: Google Vertex AI (${getGoogleVideoModel()}).`
-      : "Video generation provider: PixVerse.",
-  );
-});
+const server = http.createServer(handleRequest);
+
+if (require.main === module) {
+  server.listen(port, () => {
+    console.log(`Branchly: http://localhost:${port}`);
+    console.log(
+      getVideoProvider() === "google"
+        ? `Video generation provider: Google Vertex AI (${getGoogleVideoModel()}).`
+        : "Video generation provider: PixVerse.",
+    );
+  });
+}
+
+module.exports = handleRequest;
 
 async function routeApi(req, res) {
   const url = new URL(req.url, `http://localhost:${port}`);
