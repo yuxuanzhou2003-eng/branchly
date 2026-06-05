@@ -1899,14 +1899,36 @@ function cancelAddChar() {
   renderModal();
 }
 
+function cleanCharacterName(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ');
+}
+
+function cleanAgeLabel(value) {
+  const label = String(value || '').trim().replace(/\s+/g, ' ');
+  if (!label) return 'Unknown Age';
+  return /^\d+$/.test(label) ? `Age ${label}` : label;
+}
+
+function slugifyId(value, fallback = 'item') {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 32) || fallback;
+}
+
 async function generateNewCharImages() {
+  const name = cleanCharacterName(S.addCharNewName);
   const desc = S.addCharNewDesc.trim();
+  if (!name) { toast('Please enter a character name.'); return; }
   if (!desc) { toast('Please enter an appearance description.'); return; }
   S.addCharStep = 'new_loading'; renderModal();
   try {
+    const age = S.addCharNewAge.trim();
+    const promptDescription = [name, age, desc].filter(Boolean).join(', ');
     const res = await fetch('/api/generate-character', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ description: desc, style: S.addCharNewStyle }),
+      body: JSON.stringify({ description: promptDescription, style: S.addCharNewStyle }),
     });
     const data = await res.json();
     if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
@@ -1963,11 +1985,13 @@ function persistBranchAssetInBackground(asset, node, label) {
 function confirmNewChar() {
   const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
   if (!img) return;
-  const name = S.addCharNewName.trim() || 'New Character';
-  const age  = S.addCharNewAge.trim() || 'Unknown Age';
-  const refName = (name + '_' + age).toLowerCase().replace(/[^a-z0-9]/g,'_').replace(/_+/g,'_');
-  const newId = 'asset_' + refName.slice(0, 20);
-  const charId = 'char_' + name.toLowerCase().replace(/[^a-z0-9]/g,'_');
+  const name = cleanCharacterName(S.addCharNewName);
+  if (!name) { toast('Please enter a character name.'); return; }
+  const age = cleanAgeLabel(S.addCharNewAge);
+  const refName = slugifyId(`${name}_${age}`, 'new_character');
+  const uniqueSuffix = Math.random().toString(36).slice(2, 8);
+  const newId = `asset_${refName}_${uniqueSuffix}`;
+  const charId = `char_${slugifyId(name, 'new_character')}`;
 
   const asset = {
     assetId: newId, type: 'character', characterId: charId,
@@ -2049,7 +2073,12 @@ function renderModal() {
   });
 
   function charGroupHtml(g) {
-    const firstName = g.versions[0].name;
+    const firstName = cleanCharacterName(g.versions[0].name) || 'Character';
+    function versionLabel(c) {
+      const name = cleanCharacterName(c.name) || firstName;
+      const age = cleanAgeLabel(c.ageLabel);
+      return age && age !== 'Unknown Age' ? `${name} · ${age}` : name;
+    }
     const versions = g.versions.map(c => {
       const sel = S.modalSelectedChars.has(c.assetId);
       const photo = c.refImageUrl
@@ -2057,7 +2086,7 @@ function renderModal() {
         : `<span style="font-size:18px">👤</span>`;
       return `<button class="char-btn${sel?' selected':''}" onclick="selectCharVersion('${c.characterId||c.assetId}','${c.assetId}')">
         <div class="char-photo">${photo}</div>
-        <div class="char-name">${c.ageLabel||c.name}</div>
+        <div class="char-name">${versionLabel(c)}</div>
       </button>`;
     }).join('');
     return `<div class="char-group">

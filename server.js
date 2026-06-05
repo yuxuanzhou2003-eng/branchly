@@ -769,15 +769,17 @@ function normalizeAssetDescriptor(raw) {
 
   const type = String(raw.type || "reference").trim();
   const refImageUrl = raw.refImageUrl || raw.url || "";
+  const name = cleanAssetText(raw.name) || assetId;
+  const ageLabel = cleanAssetAgeLabel(raw.ageLabel || raw.age_label);
 
   return {
     schemaVersion: 1,
     assetId,
     type,
-    name: raw.name || assetId,
-    characterId: raw.characterId || raw.character_id || "",
-    ageLabel: raw.ageLabel || raw.age_label || "",
-    refName: raw.refName || assetId,
+    name,
+    characterId: cleanAssetText(raw.characterId || raw.character_id),
+    ageLabel,
+    refName: cleanAssetText(raw.refName) || assetId,
     pixverseImgId: raw.pixverseImgId || raw.img_id || null,
     refImageUrl,
     gcsUri: raw.gcsUri || raw.gcs_uri || gcsUriForObject(raw.gcsObject || raw.gcs_object || ""),
@@ -786,6 +788,16 @@ function normalizeAssetDescriptor(raw) {
     negativePrompt: raw.negativePrompt || "",
     metadata: raw.metadata && typeof raw.metadata === "object" ? raw.metadata : {},
   };
+}
+
+function cleanAssetText(value) {
+  return String(value || "").trim().replace(/\s+/g, " ");
+}
+
+function cleanAssetAgeLabel(value) {
+  const label = cleanAssetText(value);
+  if (!label) return "";
+  return /^\d+$/.test(label) ? `Age ${label}` : label;
 }
 
 function normalizeVideoResource(raw) {
