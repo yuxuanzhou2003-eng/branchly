@@ -1227,7 +1227,7 @@ function getServiceAccountConfig() {
   }
 
   if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    const credentialPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    const credentialPath = path.resolve(root, process.env.GOOGLE_APPLICATION_CREDENTIALS);
     if (fs.existsSync(credentialPath)) {
       return JSON.parse(fs.readFileSync(credentialPath, "utf8"));
     }

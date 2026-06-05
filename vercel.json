@@ -1,13 +1,33 @@
 {
   "functions": {
     "api/index.js": {
-      "includeFiles": "{branchly.html,index.html,logo.png,assets/**,videos/**,Videos/**}"
+      "includeFiles": "{server.js,branchly.html,index.html,logo.png,branchly-storage-key.json,assets/**,Videos/**}"
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index" },
-    { "source": "/", "destination": "/branchly.html" },
-    { "source": "/branchly", "destination": "/branchly.html" },
-    { "source": "/storytree_creator.html", "destination": "/branchly.html" }
+    {
+      "source": "/api/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/",
+      "destination": "/branchly.html"
+    },
+    {
+      "source": "/branchly",
+      "destination": "/branchly.html"
+    },
+    {
+      "source": "/storytree_creator.html",
+      "destination": "/branchly.html"
+    },
+    {
+      "source": "/videos/:path*",
+      "destination": "/api/index"
+    },
+    {
+      "source": "/Videos/:path*",
+      "destination": "/api/index"
+    }
   ]
 }
