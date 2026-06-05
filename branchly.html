@@ -514,11 +514,11 @@ option { background: #07101e; }
 
 /* Preview */
 .preview-player {
-  width: 100%; height: 260px; background: #000;
+  width: 100%; height: clamp(320px, 58vh, 500px); background: #000;
   border-radius: var(--r); overflow: hidden; border: 1px solid var(--border);
-  position: relative;
+  position: relative; display: flex; align-items: center; justify-content: center;
 }
-.preview-player video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.preview-player video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; }
 .preview-player .preview-empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 20px; }
 .preview-empty .icon { font-size: 30px; opacity: 0.25; }
 .preview-empty p { font-size: 12px; color: var(--faint); }
@@ -529,6 +529,11 @@ option { background: #07101e; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 .modal-actions { display: flex; flex-direction: column; gap: 8px; }
+.preview-video { width: 100%; height: 100%; object-fit: contain; background: #000; }
+
+@media (max-height: 760px) {
+  .preview-player { height: clamp(280px, 48vh, 390px); }
+}
 .modal-actions .btn { justify-content: center; }
 .error-msg { padding: 10px 12px; border-radius: var(--r); background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.2); font-size: 12px; color: #f87171; }
 .tech-toggle { font-size: 11px; color: var(--faint); text-decoration: underline; cursor: pointer; text-align: center; transition: color 0.15s; }
@@ -2201,7 +2206,7 @@ function renderPreview() {
   } else if (S.modalPhase==='preview'&&S.modalResult) {
     const r=S.modalResult;
     pp.innerHTML=r.videoUrl
-      ? `<video src="${r.videoUrl}" controls autoplay muted playsinline style="width:100%;height:100%;object-fit:cover"></video>`
+      ? `<video class="preview-video" src="${r.videoUrl}" controls autoplay muted playsinline></video>`
       : `<div class="preview-empty">
           <div class="icon">✨</div>
           <p style="font-size:13px;font-weight:500;color:var(--text)">${r.title}</p>
@@ -2275,6 +2280,34 @@ function isVeo3Model(model) {
   return String(model||'').startsWith('veo-3.');
 }
 
+function characterPromptName(c) {
+  const name = cleanCharacterName(c.name) || cleanCharacterName(c.refName) || 'Unnamed character';
+  const age = c.ageLabel && c.ageLabel !== 'Unknown Age' ? ` (${c.ageLabel})` : '';
+  return `${name}${age}`;
+}
+
+function buildCharacterBindingPrompt(chars) {
+  if (!chars.length) return '';
+  const roster = chars.map((c, index) => {
+    const details = [
+      `Reference image ${index + 1} is ${characterPromptName(c)}`,
+      c.promptPrefix ? `visual identity: ${c.promptPrefix}` : '',
+      c.refName ? `internal reference key: ${c.refName}` : '',
+    ].filter(Boolean).join('; ');
+    return `${details}.`;
+  }).join(' ');
+
+  return [
+    'Character-reference binding, follow exactly:',
+    roster,
+    'Keep each named character matched to their own reference image, face, age, outfit, and role.',
+    'Do not swap names, faces, bodies, clothing, or actions between characters.',
+    'When the scene prompt says a named character performs an action or speaks, only that named character performs it.',
+    'Do not create duplicates, clones, lookalikes, extra versions of the same character, or unnamed replacement characters.',
+    'If a selected character is not mentioned in the scene action, keep them offscreen or passive unless needed for continuity.',
+  ].join(' ');
+}
+
 function buildPayload() {
   const assets=getAvailableAssets(S.modalParentId);
   const chars=assets.filter(a=>a.type==='character'&&S.modalSelectedChars.has(a.assetId));
@@ -2291,6 +2324,8 @@ function buildPayload() {
     referenceType:'asset',
     img_id:c.pixverseImgId,
     ref_name:c.refName,
+    character_name:c.name,
+    age_label:c.ageLabel,
     refImageUrl:c.refImageUrl,
     gcsUri:c.gcsUri||'',
   }));
@@ -2301,8 +2336,10 @@ function buildPayload() {
   const storyContext = getStoryContext(S.modalParentId);
   const rawPromptParts = [
     style?.promptPrefix,
+    buildCharacterBindingPrompt(generationChars),
     lockedPrefix,
     storyContext ? 'Story so far: ' + storyContext : null,
+    'Scene action instructions must be followed literally, especially which named character performs each action.',
     userPrompt,
   ];
   const rawPrompt = rawPromptParts.filter(Boolean).join('. ');
