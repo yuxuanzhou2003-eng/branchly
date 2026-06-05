@@ -862,34 +862,13 @@ const ASSETS = {
     promptPrefix:'A 28-year-old East Asian woman, shoulder-length straight black hair, oval face, cold pale skin, sharp calm eyes, tailored dark grey business suit',
     negativePrompt:'no changing outfit, no different face, no extra person',
   },
-  asset_lx_25: {
-    assetId:'asset_lx_25', type:'character', characterId:'char_lx',
-    name:'Lin Xia', ageLabel:'Age 25 · Flashback', refName:'linxia_25',
-    pixverseImgId: 875295974, refImageUrl: 'assets/lin-xia.png',
-    promptPrefix:'A 25-year-old East Asian woman, softer features, longer hair, slight innocence still in her eyes, light casual outfit',
-    negativePrompt:'no different face, no extra person, no business suit',
-  },
-  asset_lx_31: {
-    assetId:'asset_lx_31', type:'character', characterId:'char_lx',
-    name:'Lin Xia', ageLabel:'Age 31 · 3 Years Later', refName:'linxia_31',
-    pixverseImgId: 875295974, refImageUrl: 'assets/lin-xia.png',
-    promptPrefix:'A 31-year-old East Asian woman, slightly tired eyes, more authoritative presence, sharp dark coat, hair tied up',
-    negativePrompt:'no different face, no extra person',
-  },
-  // ── Chen Yi · all versions ───────────────────────────────
+  // ── Chen Yi ──────────────────────────────────────────────
   asset_cy: {
     assetId:'asset_cy', type:'character', characterId:'char_cy',
     name:'Chen Yi', ageLabel:'Age 32', refName:'chenyi_32',
     pixverseImgId: 875295975, refImageUrl: 'assets/chen-yi.png',
     promptPrefix:'A 32-year-old East Asian man, neat short hair, sharp navy suit, arrogant and restrained',
     negativePrompt:'no different face, no extra person, no casual clothes',
-  },
-  asset_cy_28: {
-    assetId:'asset_cy_28', type:'character', characterId:'char_cy',
-    name:'Chen Yi', ageLabel:'Age 28 · Flashback', refName:'chenyi_28',
-    pixverseImgId: 875295975, refImageUrl: 'assets/chen-yi.png',
-    promptPrefix:'A 28-year-old East Asian man, slightly younger, less guarded expression, casual blazer, still ambitious',
-    negativePrompt:'no different face, no extra person',
   },
   // ── Mystery Man ──────────────────────────────────────────
   asset_meteor: {
@@ -933,7 +912,7 @@ const INITIAL_NODES = {
     likes:520, impressions:12000, paidUnlocks:0,
     isProtected:false, status:'alive',
     videoUrl: vp('videos/Reborn.mp4'),
-    ownAssetIds:['asset_lx','asset_lx_25','asset_lx_31','asset_cy','asset_cy_28','asset_meteor','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
+    ownAssetIds:['asset_lx','asset_cy','asset_meteor','asset_scene_meeting','asset_scene_blizzard','asset_style_main'],
   },
 
   // ── Branch A · 公司 (Company) ────────────────────────────
@@ -1113,6 +1092,7 @@ const S = {
   treePositions: {},
   newNodeIds: new Set(),
   addCharStep: null,       // null | 'choose' | 'variant' | 'new' | 'new_loading' | 'new_results'
+  addCharMode: 'new',      // 'new' | 'variant'
   addCharBaseId: null,
   addCharAge: '', addCharDesc: '',
   addCharNewName: '', addCharNewAge: '', addCharNewDesc: '', addCharNewStyle: 'cinematic realism, detailed',
@@ -1858,8 +1838,10 @@ function renderAddCharSection(charGroups) {
       <div style="font-size:12px;color:var(--text2)">Select the reference image to use:</div>
       <div style="display:flex;gap:6px">${imgCards}</div>
       <div class="add-char-actions">
-        <button onclick="setAddCharStep('new')">← Regenerate</button>
-        <button class="primary" onclick="confirmNewChar()" ${!S.addCharSelectedImg?'disabled':''}>Add Character</button>
+        <button onclick="S.addCharStep=S.addCharMode==='variant'?'variant':'new';renderModal()">← Regenerate</button>
+        <button class="primary" onclick="S.addCharMode==='variant'?finalizeVariant():confirmNewChar()" ${!S.addCharSelectedImg?'disabled':''}>
+          ${S.addCharMode==='variant'?'Add Version':'Add Character'}
+        </button>
       </div>
     </div>`;
   }
@@ -1878,7 +1860,7 @@ function renderAddCharSection(charGroups) {
       <textarea id="add-desc" rows="3" placeholder="e.g. slightly tired eyes, hair tied up, dark coat" oninput="S.addCharDesc=this.value">${S.addCharDesc}</textarea>
       <div class="add-char-actions">
         <button onclick="cancelAddChar()">Cancel</button>
-        <button class="primary" onclick="confirmAddVariant()">Add Version</button>
+        <button class="primary" onclick="generateVariantImages()">✦ Generate Reference</button>
       </div>
     </div>`;
   }
@@ -1917,11 +1899,68 @@ function slugifyId(value, fallback = 'item') {
     .slice(0, 32) || fallback;
 }
 
+async function generateVariantImages() {
+  const age = S.addCharAge.trim();
+  if (!age) { toast('Please enter an age label.'); return; }
+  const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
+  if (!base) return;
+  const desc = S.addCharDesc.trim() || base.promptPrefix;
+  S.addCharMode = 'variant';
+  S.addCharNewDesc = desc;
+  S.addCharStep = 'new_loading'; renderModal();
+  try {
+    const res = await fetch('/api/generate-character', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description: desc, style: 'cinematic realism, detailed' }),
+    });
+    const data = await res.json();
+    if (!res.ok || data.error) throw new Error(data.error || 'Generation failed');
+    S.addCharNewImages = data.images;
+    S.addCharSelectedImg = data.images[0]?.label || null;
+    S.addCharStep = 'new_results';
+  } catch(e) {
+    S.addCharStep = 'variant';
+    toast('Error: ' + e.message);
+  }
+  renderModal();
+}
+
+function finalizeVariant() {
+  const img = S.addCharNewImages?.find(i => i.label === S.addCharSelectedImg);
+  if (!img) return;
+  const base = Object.values(ASSETS).find(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId);
+  if (!base) return;
+  const age = S.addCharAge.trim();
+  const desc = S.addCharDesc.trim() || base.promptPrefix;
+  const newId = 'asset_' + base.assetId.replace('asset_','') + '_' + age.replace(/[^a-z0-9]/gi,'').toLowerCase().slice(0,8);
+
+  const asset = {
+    assetId: newId, type: 'character', characterId: S.addCharBaseId,
+    name: base.name, ageLabel: age, refName: newId.replace('asset_',''),
+    refImageUrl: img.dataUrl,
+    promptPrefix: desc,
+    negativePrompt: base.negativePrompt || 'no different face, no extra person',
+  };
+  ASSETS[newId] = asset;
+
+  const parentNode = S.nodes[S.modalParentId];
+  if (parentNode && !parentNode.ownAssetIds.includes(newId)) parentNode.ownAssetIds.push(newId);
+
+  const assets = getAvailableAssets(S.modalParentId);
+  assets.filter(a => a.type==='character' && (a.characterId||a.assetId)===S.addCharBaseId)
+    .forEach(a => S.modalSelectedChars.delete(a.assetId));
+  S.modalSelectedChars.add(newId);
+
+  cancelAddChar();
+  toast(`✓ Added: ${base.name} · ${age}`);
+}
+
 async function generateNewCharImages() {
   const name = cleanCharacterName(S.addCharNewName);
   const desc = S.addCharNewDesc.trim();
   if (!name) { toast('Please enter a character name.'); return; }
   if (!desc) { toast('Please enter an appearance description.'); return; }
+  S.addCharMode = 'new';
   S.addCharStep = 'new_loading'; renderModal();
   try {
     const age = S.addCharNewAge.trim();
