@@ -1529,17 +1529,11 @@ async function serveStatic(req, res) {
   try {
     stat = await fs.promises.stat(absolute);
   } catch {
-    if (await serveMissingStatic(req, res, pathname, requested)) {
-      return;
-    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
 
   if (!stat.isFile()) {
-    if (await serveMissingStatic(req, res, pathname, requested)) {
-      return;
-    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
@@ -1547,78 +1541,10 @@ async function serveStatic(req, res) {
   await serveStaticFile(res, absolute, stat);
 }
 
-async function serveMissingStatic(req, res, pathname, requested) {
-  if (!process.env.VERCEL) return false;
-  const fallbackPath = shouldServeAppFallback(req, pathname) ? "branchly.html" : requested;
-  return serveGitHubRawStatic(req, res, fallbackPath);
-}
-
-async function serveGitHubRawStatic(req, res, filePath) {
-  if (!isAllowedRemoteStaticPath(filePath)) return false;
-
-  const body = await fetchGitHubRawStaticBytes(filePath);
-  if (!body) return false;
-  const headers = {
-    "Content-Type": mimeForPath(filePath),
-    "Cache-Control": path.extname(filePath).toLowerCase() === ".html"
-      ? "no-store"
-      : "public, max-age=300",
-  };
-
-  headers["Content-Length"] = body.length;
-  res.writeHead(200, headers);
-  if (req.method === "HEAD") {
-    res.end();
-    return true;
-  }
-  res.end(body);
-  return true;
-}
-
 async function readStaticBytes(filePath) {
   const localPath = String(filePath || "").replace(/^\/+/, "");
   const absolute = resolveSafePath(localPath);
-
-  try {
-    return await fs.promises.readFile(absolute);
-  } catch (error) {
-    if (!process.env.VERCEL || !isMissingStorageError(error) || !isAllowedRemoteStaticPath(localPath)) {
-      throw error;
-    }
-
-    const remote = await fetchGitHubRawStaticBytes(localPath);
-    if (remote) return remote;
-    throw error;
-  }
-}
-
-async function fetchGitHubRawStaticBytes(filePath) {
-  if (!isAllowedRemoteStaticPath(filePath)) return null;
-
-  const remotePath = String(filePath || "")
-    .replace(/^\/+/, "")
-    .split("/")
-    .map((part) => encodeURIComponent(part))
-    .join("/");
-  const response = await fetch(`https://raw.githubusercontent.com/yuxuanzhou2003-eng/branchly/main/${remotePath}`);
-  if (!response.ok) return null;
-
-  return Buffer.from(await response.arrayBuffer());
-}
-
-function isAllowedRemoteStaticPath(filePath) {
-  const clean = String(filePath || "").replace(/^\/+/, "");
-  if (!clean || clean.includes("..")) return false;
-  return [".html", ".png", ".jpg", ".jpeg", ".webp", ".mp4"].includes(path.extname(clean).toLowerCase());
-}
-
-function shouldServeAppFallback(req, pathname) {
-  if (req.method !== "GET" && req.method !== "HEAD") return false;
-  if (pathname.startsWith("/api/")) return false;
-  const ext = path.extname(pathname);
-  if (ext && ![".html"].includes(ext.toLowerCase())) return false;
-  const accept = String(req.headers?.accept || "");
-  return !accept || accept.includes("text/html") || accept.includes("*/*");
+  return fs.promises.readFile(absolute);
 }
 
 async function serveStaticFile(res, absolute, existingStat = null) {
