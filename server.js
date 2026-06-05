@@ -217,10 +217,19 @@ async function routeApi(req, res) {
     const preset = stylePresets[style] || stylePresets.cinematic;
 
     const stylePrefix = style === "cinematic" ? "Photograph: " : style === "anime" ? "Anime illustration: " : "Digital painting: ";
-    const prompt = `${stylePrefix}character reference sheet showing the same person in three portrait panels side by side. Left panel: 45-degree three-quarter view facing left. Center panel: front-facing directly at camera. Right panel: 45-degree three-quarter view facing right. Subject: ${description}. ${preset.positive}. All three panels show the exact same person with consistent face and appearance. Neutral grey background, consistent soft studio lighting. Head and upper chest only. No text, no labels, no watermark.`;
+    const referenceNote = baseImageBase64
+      ? "Using the provided reference photo as the base identity — preserve the same facial bone structure, eye shape, and identity. "
+      : "";
+    const prompt = `${stylePrefix}character reference sheet showing the same person in three portrait panels side by side. Left panel: 45-degree three-quarter view facing left. Center panel: front-facing directly at camera. Right panel: 45-degree three-quarter view facing right. ${referenceNote}Subject: ${description}. ${preset.positive}. All three panels show the exact same person with consistent face and appearance. Neutral grey background, consistent soft studio lighting. Head and upper chest only. No text, no labels, no watermark.`;
 
     const apiKey = (process.env.GOOGLE_API_KEY || "").trim();
     if (!apiKey) throw new Error("Missing GOOGLE_API_KEY for character generation.");
+
+    const parts = [{ text: prompt }];
+    if (baseImageBase64) {
+      // Prepend reference image so Gemini sees the face first
+      parts.unshift({ inlineData: { mimeType: baseMimeType, data: baseImageBase64 } });
+    }
 
     const geminiResp = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
@@ -228,7 +237,7 @@ async function routeApi(req, res) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          contents: [{ parts }],
           generationConfig: { responseModalities: ["IMAGE"] },
         }),
       }
