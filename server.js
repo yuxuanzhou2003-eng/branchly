@@ -1354,7 +1354,9 @@ async function serveGitHubRawStatic(req, res, filePath) {
 
   const headers = {
     "Content-Type": mimeForPath(filePath),
-    "Cache-Control": "public, max-age=300",
+    "Cache-Control": path.extname(filePath).toLowerCase() === ".html"
+      ? "no-store"
+      : "public, max-age=300",
   };
   const contentLength = response.headers.get("content-length");
   if (contentLength) headers["Content-Length"] = contentLength;
