@@ -1540,11 +1540,17 @@ async function serveStatic(req, res) {
   try {
     stat = await fs.promises.stat(absolute);
   } catch {
+    if (await serveStaticFromGcs(req, res, requested)) {
+      return;
+    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
 
   if (!stat.isFile()) {
+    if (await serveStaticFromGcs(req, res, requested)) {
+      return;
+    }
     sendJson(res, 404, { error: "File not found." });
     return;
   }
@@ -1555,7 +1561,14 @@ async function serveStatic(req, res) {
 async function readStaticBytes(filePath) {
   const localPath = String(filePath || "").replace(/^\/+/, "");
   const absolute = resolveSafePath(localPath);
-  return fs.promises.readFile(absolute);
+  try {
+    return await fs.promises.readFile(absolute);
+  } catch (error) {
+    if (!isMissingStorageError(error) || !isStaticMediaPath(localPath) || !isGcsConfigured()) {
+      throw error;
+    }
+    return gcsDownloadObjectBytes(staticMediaStorageKey(localPath));
+  }
 }
 
 async function serveStaticFile(res, absolute, existingStat = null) {
@@ -1565,6 +1578,57 @@ async function serveStaticFile(res, absolute, existingStat = null) {
     "Content-Length": stat.size,
   });
   await pipeline(fs.createReadStream(absolute), res);
+}
+
+async function serveStaticFromGcs(req, res, requested) {
+  const localPath = String(requested || "").replace(/^\/+/, "");
+  if (!isStaticMediaPath(localPath) || !isGcsConfigured()) return false;
+
+  const objectName = staticMediaStorageKey(localPath);
+  const bucket = encodeURIComponent(process.env.GCS_BUCKET);
+  const name = encodeURIComponent(objectName);
+  const headers = {
+    Authorization: `Bearer ${await getGcsAccessToken()}`,
+  };
+  const range = normalizeRangeHeader(req.headers.range);
+  if (range) headers.Range = range;
+
+  const response = await fetch(
+    `https://storage.googleapis.com/storage/v1/b/${bucket}/o/${name}?alt=media`,
+    { headers },
+  );
+
+  if (response.status === 404) return false;
+  if (!response.ok && response.status !== 206) {
+    await ensureGcsOk(response, `stream static media ${objectName}`);
+  }
+
+  const outputHeaders = {
+    "Content-Type": response.headers.get("content-type") || mimeForPath(localPath),
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=300",
+  };
+  copyHeader(response, outputHeaders, "content-length", "Content-Length");
+  copyHeader(response, outputHeaders, "content-range", "Content-Range");
+
+  res.writeHead(response.status === 206 ? 206 : 200, outputHeaders);
+  if (req.method === "HEAD" || !response.body) {
+    res.end();
+    return true;
+  }
+
+  await pipeline(Readable.fromWeb(response.body), res);
+  return true;
+}
+
+function staticMediaStorageKey(filePath) {
+  return storageKey("static", String(filePath || "").replace(/^\/+/, ""));
+}
+
+function isStaticMediaPath(filePath) {
+  const clean = String(filePath || "").replace(/^\/+/, "");
+  if (!clean || clean.includes("..")) return false;
+  return clean.startsWith("assets/") || clean.startsWith("videos/");
 }
 
 function resolveSafePath(inputPath) {
