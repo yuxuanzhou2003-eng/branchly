@@ -515,8 +515,8 @@ async function buildGoogleVideoRequest(payload, model) {
     personGeneration: payload.personGeneration || "allow_adult",
   };
 
-  const negativePrompt = payload.negative_prompt || payload.negativePrompt;
-  if (String(negativePrompt || "").trim()) parameters.negativePrompt = negativePrompt;
+  const negativePrompt = buildGoogleVeoNegativePrompt(payload.negative_prompt || payload.negativePrompt);
+  if (negativePrompt) parameters.negativePrompt = negativePrompt;
 
   const seed = Number(payload.seed);
   if (Number.isFinite(seed)) parameters.seed = seed;
@@ -675,28 +675,93 @@ function normalizeGoogleDuration(duration) {
 
 function makeGoogleVeoSafePrompt(prompt) {
   const replacements = [
-    [/\brevenge\b/gi, "emotional confrontation"],
+    [/\brevenge\b/gi, "seek truth and accountability"],
+    [/\bvengeance\b/gi, "a determined search for accountability"],
     [/\brage\b/gi, "intense emotion"],
-    [/\bburn\b/gi, "fall apart emotionally"],
-    [/\bblade\b/gi, "sharp decision"],
-    [/\bdeath\b/gi, "past crisis"],
-    [/\bdead\b/gi, "gone"],
-    [/\bkill(?:ed|ing)?\b/gi, "defeat emotionally"],
-    [/\bblood\b/gi, "dramatic tension"],
+    [/\bfury\b/gi, "controlled determination"],
+    [/\bburn(?:ed|ing)?\b/gi, "lose stability"],
+    [/\bblades?\b/gi, "symbolic object"],
+    [/\bkn(?:ife|ives)\b/gi, "sealed letter"],
+    [/\bguns?\b/gi, "security alarm"],
+    [/\bweapons?\b/gi, "conflict-related object kept offscreen"],
+    [/\bdeath\b/gi, "past disappearance"],
+    [/\bdead\b/gi, "missing"],
+    [/\b(?:die|dies|died|dying)\b/gi, "be lost in the past crisis"],
+    [/\bkill(?:ed|s|ing)?\b/gi, "stop"],
+    [/\bmurder(?:ed|s|ing)?\b/gi, "unexplained disappearance"],
+    [/\bblood(?:y)?\b/gi, "dramatic tension"],
+    [/\bwound(?:ed|s|ing)?\b/gi, "emotional distress"],
+    [/\binjur(?:y|ies|ed|ing)\b/gi, "non-physical setback"],
+    [/\battack(?:ed|s|ing)?\b/gi, "confront"],
+    [/\bassault(?:ed|s|ing)?\b/gi, "heated dispute"],
+    [/\bbeat(?:en|ing)?\b/gi, "outmaneuver"],
+    [/\bstab(?:bed|bing|s)?\b/gi, "startle"],
+    [/\b(?:shoot|shoots|shooting|shot)\b/gi, "signal"],
+    [/\bstrangl(?:e|ed|es|ing)\b/gi, "corner emotionally"],
+    [/\btortur(?:e|ed|es|ing)\b/gi, "pressure"],
+    [/\bexecut(?:e|ed|es|ing)\b/gi, "remove from authority"],
+    [/\bcorpses?\b/gi, "abandoned evidence"],
     [/\bviolent\b/gi, "high-stakes"],
-    [/\bviolence\b/gi, "conflict"],
+    [/\bviolence\b/gi, "non-physical conflict"],
+    [/\bfight(?:ing|s)?\b/gi, "argument"],
+    [/\bbrawls?\b/gi, "heated disagreement"],
+    [/\bchase(?:d|s|ing)?\b/gi, "urgent pursuit shown at a safe distance"],
+    [/\bthreat(?:en(?:ed|ing|s)?|s)?\b/gi, "ominous warning"],
+    [/\bhostage\b/gi, "person waiting under supervision"],
+    [/\bkidnap(?:ped|ping|s)?\b/gi, "mysterious disappearance"],
+    [/\bexplode(?:d|s|ing)?\b/gi, "shut down suddenly"],
+    [/\bexplosion\b/gi, "sudden power failure"],
+    [/\bsuicid(?:e|al)\b/gi, "severe emotional crisis handled offscreen"],
+    [/\bself[- ]harm\b/gi, "emotional crisis handled offscreen"],
+    [/\babuse(?:d|s|ing)?\b/gi, "mistreatment discussed without depiction"],
+    [/\bhumiliat(?:e|ed|es|ing|ion)\b/gi, "publicly challenge"],
+    [/\bpunish(?:ed|es|ing|ment)?\b/gi, "hold accountable"],
     [/\babyss\b/gi, "uncertainty"],
     [/\bdrag\b/gi, "bring"],
     [/\bjudgment\b/gi, "truth and accountability"],
+    [/\b(?:8|9|10|11|12|13|14|15|16|17)[- ]year[- ]old\b/gi, "young adult shown in a symbolic memory"],
+    [/\bchild(?:ren)?\s+(?:is|are|was|were)\s+(?:hurt|injured|missing|in danger)\b/gi, "the family faces an urgent but non-physical concern"],
   ];
-  const safePrompt = replacements.reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), prompt);
+  const safePrompt = replacements
+    .reduce((text, [pattern, replacement]) => text.replace(pattern, replacement), cleanPromptText(prompt))
+    .replace(/\s*([.!?])(?:\s*\1)+/g, "$1")
+    .replace(/\s+/g, " ")
+    .trim();
   return [
-    "Cinematic workplace short-drama scene suitable for a broad audience.",
+    "Create a PG-rated cinematic short-drama scene suitable for a broad general audience.",
+    "Express suspense positively through dialogue, facial expressions, comfortable distance, lighting, and camera movement.",
+    "Keep every character composed, respected, fully clothed, and physically safe throughout the scene.",
+    "Use calm body language and a professional setting, with all difficult events represented by conversation or neutral environmental clues.",
     safePrompt,
     "Use any supplied asset reference image only for character identity consistency, not as the first frame, pose, composition, or background.",
     "Begin with a fresh moving shot, a new camera angle, and natural motion.",
-    "Focus on facial expressions, professional dialogue tension, camera movement, lighting, and emotional restraint.",
+    "Resolve the scene as a restrained mystery or professional disagreement.",
+    "Focus on facial expressions, dialogue tension, camera movement, lighting, atmosphere, and emotional restraint.",
   ].join(" ");
+}
+
+function buildGoogleVeoNegativePrompt(customNegativePrompt = "") {
+  const defaults = [
+    "graphic violence",
+    "blood",
+    "injury",
+    "weapons",
+    "physical attack",
+    "restraint",
+    "abuse",
+    "cruelty",
+    "self-harm",
+    "hate symbols",
+    "slurs",
+    "sexual content",
+    "nudity",
+    "minors in danger",
+    "threatening gestures",
+    "screaming",
+    "graphic aftermath",
+  ];
+  const custom = cleanPromptText(customNegativePrompt);
+  return [...defaults, ...(custom ? [custom] : [])].join(", ");
 }
 
 function usesGoogleImageInput(model, payload = {}) {
