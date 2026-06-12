@@ -1532,6 +1532,10 @@
       display: flex;
     }
 
+    .mobile-phase-steps {
+      display: none;
+    }
+
     .phase-step {
       flex: 1;
       padding: 7px;
@@ -2436,6 +2440,181 @@
         min-height: 42px;
       }
 
+      #modal-create {
+        align-items: stretch;
+        justify-content: stretch;
+        padding: 0;
+        background: #07101e;
+        backdrop-filter: none;
+      }
+
+      .modal-sheet {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        height: 100dvh;
+        max-height: none;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .modal-header {
+        min-height: 64px;
+        padding: 10px 14px;
+      }
+
+      .modal-header-left {
+        min-width: 0;
+      }
+
+      .modal-header-left .modal-eyebrow {
+        max-width: 190px;
+        margin-bottom: 2px;
+        overflow: hidden;
+        font-size: 8px;
+        letter-spacing: 1px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .modal-header-left h2 {
+        overflow: hidden;
+        font-size: 18px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .modal-header-right {
+        flex-shrink: 0;
+        gap: 7px;
+      }
+
+      .modal-header-right .token-badge {
+        padding-inline: 8px;
+      }
+
+      .modal-close {
+        width: 36px;
+        height: 36px;
+      }
+
+      .mobile-phase-steps {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        flex-shrink: 0;
+        padding: 0 10px;
+        border-bottom: 1px solid var(--border);
+        background: rgba(4, 6, 15, 0.72);
+      }
+
+      .mobile-phase-steps .phase-step {
+        min-width: 0;
+        padding: 11px 4px 10px;
+        overflow: hidden;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: 0;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .modal-right > .phase-steps {
+        display: none;
+      }
+
+      .modal-body {
+        display: flex;
+        min-height: 0;
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+
+      .modal-left {
+        flex: 0 0 auto;
+        gap: 16px;
+        padding: 16px;
+        overflow: visible;
+        border-right: 0;
+      }
+
+      .modal-right {
+        flex: 0 0 auto;
+        gap: 10px;
+        padding: 0 16px 24px;
+        overflow: visible;
+      }
+
+      #modal-create[data-phase="draft"] .preview-player {
+        display: none;
+      }
+
+      #modal-create[data-phase="draft"] .modal-actions {
+        position: sticky;
+        bottom: 0;
+        z-index: 4;
+        padding: 10px 0 4px;
+        background: linear-gradient(to top, #07101e 78%, rgba(7, 16, 30, 0));
+      }
+
+      #modal-create[data-phase="generating"] .modal-body,
+      #modal-create[data-phase="preview"] .modal-body {
+        overflow: hidden;
+      }
+
+      #modal-create[data-phase="generating"] .modal-left,
+      #modal-create[data-phase="preview"] .modal-left {
+        display: none;
+      }
+
+      #modal-create[data-phase="generating"] .modal-right,
+      #modal-create[data-phase="preview"] .modal-right {
+        flex: 1;
+        min-height: 0;
+        padding: 14px 16px 20px;
+        overflow-y: auto;
+      }
+
+      #modal-create[data-phase="generating"] .preview-player,
+      #modal-create[data-phase="preview"] .preview-player {
+        flex: 1 0 min(58dvh, 520px);
+        width: 100%;
+        height: auto;
+        min-height: 360px;
+        max-height: none;
+      }
+
+      .options-row {
+        flex-direction: column;
+      }
+
+      .option-select {
+        width: 100%;
+        min-height: 42px;
+      }
+
+      .prompt-area {
+        min-height: 120px;
+      }
+
+      .modal-actions .btn {
+        width: 100%;
+        min-height: 44px;
+        justify-content: center;
+      }
+
+      .tech-toggle {
+        min-height: 36px;
+        padding: 8px;
+      }
+
+      .tech-payload {
+        max-width: 100%;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+
       .hero {
         height: min(590px, calc(100svh - var(--nav-h) - 56px));
         min-height: 540px;
@@ -2790,6 +2969,11 @@
             </div>
             <button class="modal-close" onclick="closeModal()">&times;</button>
           </div>
+        </div>
+        <div class="phase-steps mobile-phase-steps" aria-label="Generation progress">
+          <div class="phase-step active" data-phase="draft">1 Write Story</div>
+          <div class="phase-step" data-phase="generating">2 Generating</div>
+          <div class="phase-step" data-phase="preview">3 Preview</div>
         </div>
         <div class="modal-body">
           <div class="modal-left" id="modal-left"></div>
@@ -4343,6 +4527,7 @@
       const scenes = assets.filter(a => a.type === 'scene');
       const styleAsset = assets.find(a => a.type === 'style');
       const parent = S.nodes[S.modalParentId];
+      document.getElementById('modal-create').dataset.phase = S.modalPhase;
 
       // Phase steps
       document.querySelectorAll('.phase-step').forEach(el => {
